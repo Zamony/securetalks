@@ -80,9 +80,8 @@ data = [
         world="Это русский тест для тестирования пересылки",
     ),
 ]
-sock.sendto("hi!", addr)
 sock.sendto(data, addr)
-#data, addr = sock.recvfrom()
+data, addr = sock.recvfrom()
 sock.close()
 
-#print(data)
+print(data)
