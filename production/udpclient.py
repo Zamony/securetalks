@@ -5,7 +5,7 @@ import socket
 import snakesockets
 
 sock = snakesockets.UDP()
-addr = ("localhost", 9000)
+addr = ("80.211.205.161", 9000)
 
 data = [
     "Это русский тест для тестирования пересылки",
@@ -80,9 +80,9 @@ data = [
         world="Это русский тест для тестирования пересылки",
     ),
 ]
-
+sock.sendto("hi!", addr)
 sock.sendto(data, addr)
-data, addr = sock.recvfrom()
+#data, addr = sock.recvfrom()
 sock.close()
 
-print(data)
+#print(data)
