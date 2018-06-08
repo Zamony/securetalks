@@ -12,7 +12,7 @@ def worker(client_socket):
 
 if __name__ == "__main__":
     server_socket = snakesockets.TCP(reuseaddr=True)
-    server_socket.bind(("localhost", 9000))
+    server_socket.bind(("0.0.0.0", 9000))
     server_socket.listen()
 
     while True:
