@@ -6,7 +6,7 @@ import snakesockets
 
 def worker(client_socket):
     message = client_socket.recv()
-    client_socket.send(f"клиент {message[-2]}, привет от сервера!")
+    client_socket.send("клиент {}, привет от сервера!".format(message[-2]))
     client_socket.close()
     print(message)
 
