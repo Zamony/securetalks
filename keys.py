@@ -100,10 +100,17 @@ class MessageCrypto:
     def __init__(self, keys_provider):
         self.keys = keys_provider
 
-    def get_ciphergram(self, message):
+    def get_ciphergram(self, text):
         secret_key = Fernet.generate_key()
         fernet = Fernet(secret_key)
-        ciphertext = fernet.encrypt(message.encode("utf-8"))
+        message = [
+            self.keys.pub_key.public_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PublicFormat.SubjectPublicKeyInfo,
+            ).hex(),
+            text.encode("utf-8").hex(),
+        ]
+        ciphertext = fernet.encrypt(json.dumps(message).encode("utf-8"))
         cipherkey = self.keys.pub_key.encrypt(
             secret_key,
             padding.OAEP(
@@ -133,8 +140,26 @@ class MessageCrypto:
         except Exception:
             raise MessageParsingError
         
+        key = self._decrypt_cipherkey(cipherkey)
+        text = self._decrypt_ciphertext(key, ciphertext)
+
         try:
-            key = self.prv_key.decrypt(
+            node_pub_key_bytes, message = json.loads(text.decode("utf-8"))
+            message = bytes.fromhex(message)
+            node_pub_key_bytes = bytes.fromhex(node_pub_key_bytes)
+            node_pub_key = serialization.load_pem_public_key(
+                node_pub_key_bytes, backend=default_backend()
+            )
+        except Exception:
+            raise MessageParsingError
+
+        self._verify_signature(node_pub_key, ciphertext, signature)
+        return node_pub_key, message.decode("utf-8")
+
+
+    def _decrypt_cipherkey(self, cipherkey):
+        try:
+            key = self.keys.prv_key.decrypt(
                 cipherkey,
                 padding.OAEP(
                     mgf=padding.MGF1(algorithm=hashes.SHA256()),
@@ -145,18 +170,19 @@ class MessageCrypto:
         except ValueError:
             raise MessageDecryptionError
 
+        return key
+
+    def _decrypt_ciphertext(self, key, ciphertext):
         try:
             text = Fernet(key).decrypt(ciphertext)
-        except cryptography.fernet.InvalidToken, TypeError:
+        except (cryptography.fernet.InvalidToken, TypeError):
             raise MessageDecryptionError
+        
+        return text
 
+    def _verify_signature(self, node_pub_key, ciphertext, signature):
         try:
-            node_pub_key, message = json.loads(text)
-        except json.JSONDecodeError, ValueError:
-            raise MessageParsingError
-
-        try:
-            node_public_key.verify(
+            node_pub_key.verify(
                 signature,
                 ciphertext,
                 padding.PSS(
@@ -172,5 +198,12 @@ class MessageCrypto:
 if __name__ == "__main__":
     keys_provider = KeysProvider()
     crypto = MessageCrypto(keys_provider)
-    message = """Пока вся страна обсуждает победу сборной над соотечественниками Бена Ладена, пенсионную реформу, средний палец Робби Уильямса и нежелание Саши Головина участвовать в псевдопатриотическом шабаше на «Первом канале», в тюрьме строгого режима «Камити» в кенийском городе Найроби для заключенных устроили свой «чемпионат мира по футболу». Мероприятие организовала местная церковь, которая, видимо, до сих пор верит, что футбол способен изменить людей. Но все довольны: маньяки — тем, что им разрешили побегать, а руководство тюрьмы — порядком.Система проста: заключенных разделили на 32 команды, имитирующие реальные сборные мундиаля. В итоге африканские наркоторговцы и рецидивисты были вынуждены косить под Игнашевича и Газинского. В самом прямом смысле этого слова, потому что матч-открытие в кенийской тюрьме между «Россией» и «Саудовской Аравией» завершился со счетом 5:0. В составе «России» даже нашелся свой Денис Черышев по имени Байрон Отиено: он тоже единственный из команды забил два гола. Только местный Черышев гораздо чернее и осужден за убийство. Неизвестно, по какому принципу отбирали игроков в команды и, вообще, старались ли священники соблюсти реальный баланс сил, чтобы рецидивисты из «Германии» играли лучше насильников из «Панамы». Если на такие мелочи внимание не обращалось, то у сборной России впервые появился реальный шанс выиграть мундиаль."""
-    encrypted_msg = crypto.encrypt(message)
+    messagex = """Пока вся страна обсуждает победу сборной над соотечественниками Бена Ладена, пенсионную реформу, средний палец Робби Уильямса и нежелание Саши Головина участвовать в псевдопатриотическом шабаше на «Первом канале», в тюрьме строгого режима «Камити» в кенийском городе Найроби для заключенных устроили свой «чемпионат мира по футболу». Мероприятие организовала местная церковь, которая, видимо, до сих пор верит, что футбол способен изменить людей. Но все довольны: маньяки — тем, что им разрешили побегать, а руководство тюрьмы — порядком.Система проста: заключенных разделили на 32 команды, имитирующие реальные сборные мундиаля. В итоге африканские наркоторговцы и рецидивисты были вынуждены косить под Игнашевича и Газинского. В самом прямом смысле этого слова, потому что матч-открытие в кенийской тюрьме между «Россией» и «Саудовской Аравией» завершился со счетом 5:0. В составе «России» даже нашелся свой Денис Черышев по имени Байрон Отиено: он тоже единственный из команды забил два гола. Только местный Черышев гораздо чернее и осужден за убийство. Неизвестно, по какому принципу отбирали игроков в команды и, вообще, старались ли священники соблюсти реальный баланс сил, чтобы рецидивисты из «Германии» играли лучше насильников из «Панамы». Если на такие мелочи внимание не обращалось, то у сборной России впервые появился реальный шанс выиграть мундиаль."""
+    message = "А дым отечества и сладок, и приятен"
+    ciphergram = crypto.get_ciphergram(message)
+    print(ciphergram)
+    print()
+    pub_key, decoded_message = crypto.get_plaintext(ciphergram)
+    print(pub_key)
+    print()
+    print(decoded_message)
