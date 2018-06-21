@@ -1,9 +1,9 @@
 import struct
 import hashlib
 
-def proof_of_work(bmessage):
+def compute_pow(bmessage):
     nonce = 0
-    target = (1 << 48) / (1000 + len(bmessage))
+    target = compute_target(bmessage)
     trial = target + 1
     while trial > target:
         nonce += 1
@@ -12,6 +12,23 @@ def proof_of_work(bmessage):
         hash2 = hashlib.sha512(hash1).digest()
         trial = struct.unpack("!Q", hash2[:8])[0]
 
-    return nonce, trial, target
+    return nonce
 
-print(proof_of_work(b"hello world"))
+def check_pow_valid(bmessage, nonce):
+    target = compute_target(bmessage)
+    bnonce = struct.pack("!Q", nonce)
+    hash1 = hashlib.sha512(bnonce + bmessage).digest()
+    hash2 = hashlib.sha512(hash1).digest()
+    trial = struct.unpack("!Q", hash2[:8])[0]
+
+    return trial <= target
+
+def compute_target(bmessage):
+    return (1 << 54) / (100 + len(bmessage))
+
+
+if __name__ == "__main__":
+    message = b"hello, folks!"
+    proof = compute_pow(message)
+    print(f"Checking proof={proof}:")
+    print(check_pow_valid(message, proof))

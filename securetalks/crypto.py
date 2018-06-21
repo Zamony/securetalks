@@ -1,3 +1,4 @@
+import time
 import json
 import logging
 import pathlib
@@ -9,6 +10,8 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.fernet import Fernet
 
+import proof_of_work
+
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -16,16 +19,6 @@ logger = logging.getLogger(__name__)
 
 class RSAKeysNotFoundError(IOError):
     """Error when keys aren't on the disk"""
-
-class MessageParsingError(Exception):
-    """Error when the message has invalid structure"""
-
-class MessageDecryptionError(Exception):
-    """Error when you are not the proper recipient of the message"""
-
-class MessageVerificationError(Exception):
-    """Error when message's sender and author are not the same"""
-
 
 class KeysProvider:
     def __init__(self, data_dir_name=".securetalks"):
@@ -96,11 +89,36 @@ class KeysProvider:
         return public_key, private_key
 
 
+
+class MessageCryptoError(Exception):
+    """Base class for all message errors"""
+
+class MessagePOWError(MessageCryptoError):
+    """Error when the message has invalid proof of work"""
+
+class MessageParsingError(MessageCryptoError):
+    """Error when the message has invalid structure"""
+
+class MessageTimingError(MessageCryptoError):
+    """Error when the message is too old to be accepted"""
+
+class MessageDecryptionError(MessageCryptoError):
+    """Error when you are not the proper recipient of the message"""
+
+class MessageVerificationError(MessageCryptoError):
+    """Error when message's sender and author are not the same"""
+
 class MessageCrypto:
-    def __init__(self, keys_provider):
+    def __init__(self, keys_provider, timespan_allowed):
         self.keys = keys_provider
+        self.timespan_allowed = timespan_allowed
 
     def get_ciphergram(self, text):
+        inner_ciphergram = self._get_ciphergram(text)
+        proof = proof_of_work.compute_pow(inner_ciphergram.encode("utf-8"))
+        return json.dumps([inner_ciphergram, proof])
+
+    def _get_ciphergram(self, text):
         secret_key = Fernet.generate_key()
         fernet = Fernet(secret_key)
         message = [
@@ -116,8 +134,8 @@ class MessageCrypto:
             padding.OAEP(
                 mgf=padding.MGF1(algorithm=hashes.SHA256()),
                 algorithm=hashes.SHA256(),
-                label=None
-            )
+                label=None,
+            ),
         )
         signature = self.keys.prv_key.sign(
             ciphertext,
@@ -125,21 +143,37 @@ class MessageCrypto:
                 mgf=padding.MGF1(hashes.SHA256()),
                 salt_length=padding.PSS.MAX_LENGTH
             ),
-            hashes.SHA256()
+            hashes.SHA256(),
         )
+
         return json.dumps([
-            ciphertext.hex(), cipherkey.hex(), signature.hex()
+            int(time.time()), ciphertext.hex(), cipherkey.hex(), signature.hex()
         ])
 
     def get_plaintext(self, ciphergram):
         try:
-            ciphertext, cipherkey, signature = json.loads(ciphergram)
+            inner_ciphergram, proof = json.loads(ciphergram)
+        except Exception:
+            raise MessageParsingError
+        
+        if not proof_of_work.check_pow_valid(
+            inner_ciphergram.encode("utf-8"), proof
+        ):
+            raise MessagePOWError
+
+        return self._get_plaintext(inner_ciphergram)
+
+    def _get_plaintext(self, ciphergram):
+        try:
+            ctime, ciphertext, cipherkey, signature = json.loads(ciphergram)
             ciphertext = bytes.fromhex(ciphertext)
             cipherkey = bytes.fromhex(cipherkey)
             signature = bytes.fromhex(signature)
         except Exception:
             raise MessageParsingError
-        
+
+        self._check_ciphergram_not_old(ctime)
+
         key = self._decrypt_cipherkey(cipherkey)
         text = self._decrypt_ciphertext(key, ciphertext)
 
@@ -156,7 +190,6 @@ class MessageCrypto:
         self._verify_signature(node_pub_key, ciphertext, signature)
         return node_pub_key, message.decode("utf-8")
 
-
     def _decrypt_cipherkey(self, cipherkey):
         try:
             key = self.keys.prv_key.decrypt(
@@ -164,8 +197,8 @@ class MessageCrypto:
                 padding.OAEP(
                     mgf=padding.MGF1(algorithm=hashes.SHA256()),
                     algorithm=hashes.SHA256(),
-                    label=None
-                )
+                    label=None,
+                ),
             )
         except ValueError:
             raise MessageDecryptionError
@@ -177,7 +210,7 @@ class MessageCrypto:
             text = Fernet(key).decrypt(ciphertext)
         except (cryptography.fernet.InvalidToken, TypeError):
             raise MessageDecryptionError
-        
+
         return text
 
     def _verify_signature(self, node_pub_key, ciphertext, signature):
@@ -187,17 +220,21 @@ class MessageCrypto:
                 ciphertext,
                 padding.PSS(
                     mgf=padding.MGF1(hashes.SHA256()),
-                    salt_length=padding.PSS.MAX_LENGTH
+                    salt_length=padding.PSS.MAX_LENGTH,
                 ),
-                hashes.SHA256()
+                hashes.SHA256(),
             )
         except cryptography.exceptions.InvalidSignature:
             raise MessageVerificationError
 
+    def _check_ciphergram_not_old(self, ciphergram_time):
+        if time.time() - ciphergram_time > self.timespan_allowed:
+            raise MessageTimingError
+
 
 if __name__ == "__main__":
     keys_provider = KeysProvider()
-    crypto = MessageCrypto(keys_provider)
+    crypto = MessageCrypto(keys_provider, 3600)
     message = """Пока вся страна обсуждает победу сборной над соотечественниками Бена Ладена, пенсионную реформу, средний палец Робби Уильямса и нежелание Саши Головина участвовать в псевдопатриотическом шабаше на «Первом канале», в тюрьме строгого режима «Камити» в кенийском городе Найроби для заключенных устроили свой «чемпионат мира по футболу». Мероприятие организовала местная церковь, которая, видимо, до сих пор верит, что футбол способен изменить людей. Но все довольны: маньяки — тем, что им разрешили побегать, а руководство тюрьмы — порядком.Система проста: заключенных разделили на 32 команды, имитирующие реальные сборные мундиаля. В итоге африканские наркоторговцы и рецидивисты были вынуждены косить под Игнашевича и Газинского. В самом прямом смысле этого слова, потому что матч-открытие в кенийской тюрьме между «Россией» и «Саудовской Аравией» завершился со счетом 5:0. В составе «России» даже нашелся свой Денис Черышев по имени Байрон Отиено: он тоже единственный из команды забил два гола. Только местный Черышев гораздо чернее и осужден за убийство. Неизвестно, по какому принципу отбирали игроков в команды и, вообще, старались ли священники соблюсти реальный баланс сил, чтобы рецидивисты из «Германии» играли лучше насильников из «Панамы». Если на такие мелочи внимание не обращалось, то у сборной России впервые появился реальный шанс выиграть мундиаль."""
     ciphergram = crypto.get_ciphergram(message)
     print(ciphergram)
