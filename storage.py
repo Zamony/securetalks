@@ -53,6 +53,12 @@ class Storage:
             raise sqlite3.Error
 
         return self.cursor.fetchall()
+
+    def add_message_from(who, text):
+        self.cursor.execute(
+            "INSERT INTO `messages` VALUES (?, ?, ?)", (who, text, int(time.time()))
+        )
+        self.cursor.commit()        
         
 
     def _create_tables_if_needed(self):
