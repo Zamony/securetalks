@@ -24,7 +24,7 @@ def check_pow_valid(bmessage, nonce):
     return trial <= target
 
 def compute_target(bmessage):
-    return (1 << 54) / (100 + len(bmessage))
+    return (1 << 56) / (1 + len(bmessage))
 
 
 if __name__ == "__main__":
