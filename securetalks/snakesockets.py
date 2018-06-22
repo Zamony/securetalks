@@ -31,9 +31,8 @@ class TCP:
         self.sock.close()
 
     def send(self, msg_obj):
-        msg_binary = pickle.dumps(msg_obj)
-        self.sock.send(struct.pack("!I", len(msg_binary)))
-        self.sock.send(msg_binary)
+        self.sock.send(struct.pack("!I", len(msg_obj)))
+        self.sock.send(msg_obj)
 
     def recv(self):
         b1, b2, b3, b4 = (
@@ -51,10 +50,10 @@ class TCP:
             bytes_read += len(readed_data)
             msg_obj += readed_data
 
-        return pickle.loads(msg_obj)
+        return msg_obj
 
 
-class UDP:
+class PickleUDP:
     def __init__(self, reuseaddr=False):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.msgs = {}
