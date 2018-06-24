@@ -14,7 +14,7 @@ class Storage:
     @property
     def known_addresses(self):
         self.cursor.execute("SELECT `ip_address` FROM `ip_addresses`")
-        return cursor.fetchall()
+        return (ip for ip, in self.cursor.fetchall())
 
     def add_known_address(self, ip_address):
         self.cursor.execute(
@@ -24,7 +24,7 @@ class Storage:
 
     @property
     def ciphergrams(self):
-        self.cursor.execute("SELECT `ciphergram` FROM `ciphergrams`")
+        self.cursor.execute("SELECT `ciphergram`, `timestamp` FROM `ciphergrams`")
         return cursor.fetchall()
 
     def add_ciphergram(self, ciphergram):
@@ -102,6 +102,5 @@ if __name__ == "__main__":
     db_path = pathlib.Path.home() / ".securetalks" / "db.sqlite3"
     seconds_in_two_days = 60 * 60 * 24 * 2
     storage = Storage(db_path, seconds_in_two_days)
-    messages = storage.get_messages_from("uid2", limit=2)
-    print(messages)
+    print(storage.known_addresses)
     storage.close()
