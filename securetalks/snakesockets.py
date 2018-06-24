@@ -31,8 +31,8 @@ class TCP:
         self.sock.close()
 
     def send(self, msg_obj):
-        self.sock.send(struct.pack("!I", len(msg_obj)))
-        self.sock.send(msg_obj)
+        self.sock.sendall(struct.pack("!I", len(msg_obj)))
+        self.sock.sendall(msg_obj)
 
     def recv(self):
         b1, b2, b3, b4 = (
