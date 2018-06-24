@@ -26,14 +26,23 @@ class KeysProvider:
         data_dir.mkdir(exist_ok=True)
         self._pub_file = data_dir / "pub.pem"
         self._prv_file = data_dir / "prv.pem"
-        self._pub_key = None
-        self._prv_key = None
+        self._pub_key = self._prv_key = self._pub_key_str = None
 
     @property
     def pub_key(self):
         if self._pub_key is None:
             self._obtain_keys()
         return self._pub_key
+
+    @property
+    def pub_key_str(self):
+        if self._pub_key_str is None:
+            pub_pem = self.pub_key.public_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PublicFormat.SubjectPublicKeyInfo,
+            )
+            self._pub_key_str = pub_pem.hex()
+        return self._pub_key_str
 
     @property
     def prv_key(self):
@@ -93,6 +102,9 @@ class KeysProvider:
 class MessageCryptoError(Exception):
     """Base class for all message errors"""
 
+class MessageCryptoInvalidRecipientKey(MessageCryptoError):
+    """Error when the recipient's private key is invalid"""
+
 class MessagePOWError(MessageCryptoError):
     """Error when the message has invalid proof of work"""
 
@@ -113,12 +125,22 @@ class MessageCrypto:
         self.keys = keys_provider
         self.timespan_allowed = timespan_allowed
 
-    def get_ciphergram(self, text):
-        inner_ciphergram = self._get_ciphergram(text)
-        proof = proof_of_work.compute_pow(inner_ciphergram.encode("utf-8"))
-        return json.dumps([inner_ciphergram, proof])
+    def get_ciphergram(self, user_key, text):
+        try:
+            user_public_key = serialization.load_pem_public_key(
+                bytes.fromhex(user_key),
+                backend=default_backend()
+            )
+        except Exception:
+            raise MessageCryptoInvalidRecipientKey
 
-    def _get_ciphergram(self, text):
+        inner_ciphergram = self._get_ciphergram(user_public_key, text)
+        proof = proof_of_work.compute_pow(inner_ciphergram.encode("utf-8"))
+        return json.dumps({
+            "type": "ciphergram", "data": inner_ciphergram, "proof": proof
+        })
+
+    def _get_ciphergram(self, user_public_key, text):
         secret_key = Fernet.generate_key()
         fernet = Fernet(secret_key)
         message = [
@@ -129,7 +151,7 @@ class MessageCrypto:
             text.encode("utf-8").hex(),
         ]
         ciphertext = fernet.encrypt(json.dumps(message).encode("utf-8"))
-        cipherkey = self.keys.pub_key.encrypt(
+        cipherkey = user_public_key.encrypt(
             secret_key,
             padding.OAEP(
                 mgf=padding.MGF1(algorithm=hashes.SHA256()),
@@ -152,7 +174,9 @@ class MessageCrypto:
 
     def get_plaintext(self, ciphergram):
         try:
-            inner_ciphergram, proof = json.loads(ciphergram)
+            ciphergram_content = json.loads(ciphergram)
+            inner_ciphergram = ciphergram_content["data"]
+            proof = ciphergram_content["proof"]
         except Exception:
             raise MessageParsingError
         
@@ -236,7 +260,7 @@ if __name__ == "__main__":
     keys_provider = KeysProvider()
     crypto = MessageCrypto(keys_provider, 3600)
     message = """Пока вся страна обсуждает победу сборной над соотечественниками Бена Ладена, пенсионную реформу, средний палец Робби Уильямса и нежелание Саши Головина участвовать в псевдопатриотическом шабаше на «Первом канале», в тюрьме строгого режима «Камити» в кенийском городе Найроби для заключенных устроили свой «чемпионат мира по футболу». Мероприятие организовала местная церковь, которая, видимо, до сих пор верит, что футбол способен изменить людей. Но все довольны: маньяки — тем, что им разрешили побегать, а руководство тюрьмы — порядком.Система проста: заключенных разделили на 32 команды, имитирующие реальные сборные мундиаля. В итоге африканские наркоторговцы и рецидивисты были вынуждены косить под Игнашевича и Газинского. В самом прямом смысле этого слова, потому что матч-открытие в кенийской тюрьме между «Россией» и «Саудовской Аравией» завершился со счетом 5:0. В составе «России» даже нашелся свой Денис Черышев по имени Байрон Отиено: он тоже единственный из команды забил два гола. Только местный Черышев гораздо чернее и осужден за убийство. Неизвестно, по какому принципу отбирали игроков в команды и, вообще, старались ли священники соблюсти реальный баланс сил, чтобы рецидивисты из «Германии» играли лучше насильников из «Панамы». Если на такие мелочи внимание не обращалось, то у сборной России впервые появился реальный шанс выиграть мундиаль."""
-    ciphergram = crypto.get_ciphergram(message)
+    ciphergram = crypto.get_ciphergram(crypto.keys.pub_key_str, message)
     print(ciphergram)
     print()
     pub_key, decoded_message = crypto.get_plaintext(ciphergram)
