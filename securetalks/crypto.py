@@ -202,17 +202,17 @@ class MessageCrypto:
         text = self._decrypt_ciphertext(key, ciphertext)
 
         try:
-            node_pub_key_bytes, message = json.loads(text.decode("utf-8"))
+            node_pub_key_str, message = json.loads(text.decode("utf-8"))
             message = bytes.fromhex(message)
-            node_pub_key_bytes = bytes.fromhex(node_pub_key_bytes)
             node_pub_key = serialization.load_pem_public_key(
-                node_pub_key_bytes, backend=default_backend()
+                bytes.fromhex(node_pub_key_str),
+                backend=default_backend()
             )
         except Exception:
             raise MessageParsingError
 
         self._verify_signature(node_pub_key, ciphertext, signature)
-        return node_pub_key, message.decode("utf-8")
+        return node_pub_key_str, message.decode("utf-8")
 
     def _decrypt_cipherkey(self, cipherkey):
         try:
