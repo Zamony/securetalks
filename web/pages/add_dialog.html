@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Add dialogs</title>
+    <link rel="stylesheet" href="/static/bootstrap.min.css">
+    <link href="/static/open-iconic-bootstrap.min.css" rel="stylesheet">
+    <style>
+        .navbar {
+            background: #52344D;
+            /*#481D5A;*/
+        }
+
+        main .nav-item .active {
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <nav id="bar" class="navbar navbar-expand navbar-dark mb-3">
+        <a class="navbar-brand" href="/index.html">Secure Talks</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarCollapse" aria-controls="navbarCollapse"
+            aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/index.html">Chat</a>
+                </li>
+                <li class="nav-item active">
+                    <a class="nav-link" href="#">Config
+                        <span class="sr-only">(current)</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <main class="container">
+        <div class="row">
+            <div class="col-md-3">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#">Add Dialog</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/pages/delete_dialog.html">Delete Dialog</a>
+                    </li>
+                </ul>
+            </div>
+            <div class="col-md-9 border-left p-3">
+                    <div class="form-group">
+                        <label for="user_public_key">User ID (public key)</label>
+                        <textarea class="form-control" id="user_public_key" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="user_alias">Alias for user ID</label>
+                        <input type="text" class="form-control" id="user_alias" placeholder="For example: Cousin John">
+                        <small class="form-text text-muted">Not required, but it's needed for the matters of convenience</small>
+                    </div>
+                    <button class="btn btn-primary">Add dialog with the user</button>
+            </div>
+
+        </div>
+    </main>
+    <script src="/static/jquery.min.js "></script>
+    <script src="/static/popper.js "></script>
+    <script src="/static/bootstrap.min.js "></script>
+    <script src="/static/autosize.min.js "></script>
+    <script src="/webevents.js"></script>
+    <script>
+        $(document).on('click', "button", function (e) {
+            var uid = $("#user_public_key").val();
+            var alias = $("#user_alias").val();
+            if (uid == "") return;
+            if (alias == "")
+                webevents.fireEvent("add_dialog", uid);
+            else
+                webevents.fireEvent("add_dialog", [uid, alias]);
+            
+            $("#user_alias").val("");
+            $("#user_public_key").val("");
+        });
+
+        $(document).ready(function () {
+            autosize($('textarea'));
+        });
+    </script>
+</body>
+
+</html>

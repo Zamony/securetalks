@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>SecureTalks - Chat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/static/bootstrap.min.css">
+  <link href="/static/open-iconic-bootstrap.min.css" rel="stylesheet">
+  <style>
+    .message {
+      max-width: 90%;
+      font-size: 90%;
+      line-height: 1.3;
+    }
+
+    .message-me p {
+      color: #2F7D6E;
+    }
+
+    .navbar {
+      background: #52344D;
+    }
+
+    #dialogs {
+      background-color: #52344D;
+    }
+
+    #dialogs .list-group .active {
+      background-color: #3D9C8A;
+      border: none;
+      color: #fff;
+    }
+
+    #dialogs .list-group-item {
+      background-color: #52344D;
+      color: #ccc;
+    }
+
+    .inputbox button {
+      background: #3D9C8A;
+    }
+
+    .inputbox button:hover {
+      background: rgb(49, 129, 114);
+    }
+  </style>
+</head>
+
+<body>
+  <main class="container-fluid p-0">
+    <div class="row m-0">
+      <div class="col-md-3 p-0">
+        <nav id="bar" class="navbar navbar-expand navbar-dark">
+          <a class="navbar-brand" href="#">Secure Talks</a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarCollapse" aria-controls="navbarCollapse"
+            aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav mr-auto">
+              <li class="nav-item active">
+                <a class="nav-link" href="#">Chat
+                  <span class="sr-only">(current)</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="/pages/add_dialog.html">Config</a>
+              </li>
+            </ul>
+          </div>
+        </nav>
+        <div id="dialogs" style="overflow-y: auto;">
+          <div class="list-group list-group-flush">
+            <!-- Here will be displayed active dialogs-->
+          </div>
+        </div>
+      </div>
+      <div class="conversation col-md-9 py-0 px-2">
+        <div class="messages" style="overflow-y: auto; background: #fff">
+          <div class="message message-from p-2 m-2 text">
+            <h3>Select chat to start messaging</h3>
+          </div>
+        </div>
+        <div class="inputbox d-flex d-flex-row align-items-end p-2" style="visibility:hidden;">
+          <textarea style="max-height:180px; resize:none; box-sizing: border-box;" class="form-control" rows="1" placeholder="Write a message..."></textarea>
+          <button class="btn btn-success btn-sm mx-1 my-0" style="height: 38px;">Send</button>
+        </div>
+      </div>
+      <!-- Here will be messages lists -->
+    </div>
+  </main>
+
+  <script src="/static/jquery.min.js "></script>
+  <script src="/static/popper.js "></script>
+  <script src="/static/bootstrap.min.js "></script>
+  <script src="/static/autosize.min.js "></script>
+  <script src="/webevents.js"></script>
+  <script>
+    function set_proper_sizes() {
+      var bar_height = $("nav").outerHeight();
+      var content_height = $(window).height() - bar_height;
+      var inputbox_height = $(".inputbox").outerHeight();
+      $("html").height($(window).height());
+      $("body").height($(window).height());
+      $("#dialogs").height(content_height);
+      $(".conversation").height($(window).height());
+      $(".messages").height($(window).height() - inputbox_height);
+    }
+    function set_autosize_textarea_to_top() {
+      autosize($('textarea'));
+      var ta = document.querySelector('textarea');
+      var ta_prev = $("textarea").outerHeight();
+      ta.addEventListener('autosize:resized', function () {
+        var ta_curr = $("textarea").outerHeight();
+        $(".messages").height("+=" + (ta_prev - ta_curr));
+        ta_prev = $("textarea").outerHeight();
+        scroll_messages($("textarea").parent().siblings(".messages"));
+      });
+    }
+    function enable_sidebar_navigation() {
+      $(document).on('click', "#dialogs a", function (e) {
+        var a_closest = $(e.target).closest("a");
+        a_closest.siblings().removeClass("active");
+        a_closest.addClass("active");
+        a_closest.find(".badge").html("");
+        var a_id = a_closest.attr("id");
+        $(".conversation").hide();
+
+        var conversation = "#conv-" + a_id;
+        $(conversation).show();
+        $(".inputbox").remove();
+        var inputbox_html = `
+        <div class='inputbox d-flex d-flex-row align-items-end p-2'>
+          <textarea style='max-height:180px; resize:none; box-sizing: border-box;' class='form-control' rows='1' placeholder='Write a message...'></textarea>
+          <button class='btn btn-success btn-sm mx-1 my-0' style='height: 38px;'>Send</button>
+        </div>
+        `;
+        $(conversation).append(inputbox_html);
+
+        set_proper_sizes();
+        set_autosize_textarea_to_top();
+        scroll_messages($(conversation + " .messages"));
+        webevents.fireEvent("make_dialog_read", a_id);
+      });
+    }
+    function scroll_messages(msgs) {
+      msgs.scrollTop(msgs.prop("scrollHeight"));
+    }
+
+    function add_conv_to_html(uid) {
+      var messages_template = `
+          <div id="conv-${uid}" class="conversation col-md-9 py-0 px-2" style="display:none;">
+          <div class="messages" style="overflow-y: auto; background: #fff">
+          </div>
+          </div>
+        `;
+      $("main .row").append(messages_template);
+    }
+    function add_dialog_to_sidebar_html(dialog) {
+      var dialogs_template = `
+             <a href="#" id="${dialog.talking_to}" class="list-group-item list-group-item-action flex-column align-items-start">
+              <p class="font-weight-bold  text-truncate mb-0">
+                <span class="oi oi-person small" title="person" aria-hidden="true"></span>
+                ${dialog.talking_to}
+              </p>
+              <div class="d-flex flex-row justify-content-end">
+                <div class="small text-truncate mb-0 px-2  w-100">
+                ${dialog.messages[dialog.messages.length - 1].text}
+                </div>
+                <div class="badge badge-light badge-pill">${dialog.unread_count}</div>
+              </div>
+            </a>`;
+      $("#dialogs .list-group").prepend(dialogs_template);
+    }
+    function add_message_to_dialog_html(message) {
+      $(`#conv-${message.talking_to} .messages`).append(render_msg(message));
+    }
+    function render_msg(message) {
+      var class_suff = message.to_me ? "from" : "me";
+      var author = message.to_me ? message.talking_to : "Me";
+      var posted_date = new Date(message.timestamp * 1000);
+      var posted_str = `${posted_date.getDate()}.${posted_date.getMonth()}.${posted_date.getFullYear()} ${posted_date.getHours()}:${posted_date.getMinutes()}`;
+
+      return `
+        <div class="message message-${class_suff} p-2 m-2">
+        <p class="mb-1">
+          <span class="font-weight-bold">${author}: </span>
+          <small class="text-muted"> (at ${posted_str})</small>
+        </p>
+        ${message.text}
+        </div>
+        `;
+    }
+    function push_message(message) {
+      var sidebar_el = $(`#${message.talking_to}`);
+      var dialog = {}
+      dialog.talking_to = message.talking_to;
+      dialog.messages = new Array(message);
+
+      if (sidebar_el.length == 0) {
+        add_dialog_to_sidebar_html(dialog);
+        $(`#${message.talking_to}`).find(".badge").html(1);
+        add_conv_to_html(message.talking_to);
+      } else {
+        var was_active = sidebar_el.hasClass("active");
+        var count = sidebar_el.find(".badge").html();
+        var new_count = count == "" ? 1 : parseInt(count) + 1;
+        sidebar_el.remove();
+        add_dialog_to_sidebar_html(dialog);
+        if (was_active)
+          $(`#${message.talking_to}`).addClass("active");
+        else
+          $(`#${message.talking_to}`).find(".badge").html(new_count);
+      }
+      add_message_to_dialog_html(message);
+    }
+    function initial_dialog_set(dialogs) {
+      for (var i = 0; i < dialogs.length; i += 1) {
+        var dialog = dialogs[i];
+        add_dialog_to_sidebar_html(dialog);
+        add_conv_to_html(dialog.talking_to);
+        for (var j = 0; j < dialog.messages.length; j += 1) {
+          var message = dialogs[i].messages[j];
+          message.talking_to = dialog.talking_to;
+          add_message_to_dialog_html(message);
+        }
+      }
+    }
+    function set_message_send_on_click() {
+      $(document).on('click', ".inputbox button", function (e) {
+        var uid = $(e.target).closest(".conversation").prop("id").slice(5);
+        var msg_text = $("textarea").val();
+        if (msg_text == "") return;
+        
+        webevents.fireEvent("send_message", new Array(uid, msg_text));
+        $("textarea").val("");
+        message = {
+          "to_me": false,
+          "text": msg_text,
+          "timestamp": Math.round((new Date()).getTime() / 1000),
+          "talking_to": uid,
+        };
+        push_message(message);
+        scroll_messages($(".inputbox").siblings(".messages"));
+      });
+    }
+
+    $(document).ready(function () {
+      set_proper_sizes();
+      set_autosize_textarea_to_top();
+      enable_sidebar_navigation();
+      set_message_send_on_click();
+
+      webevents.addEventListener("push_message", push_message);
+      webevents.addEventListener("get_dialogs_result", initial_dialog_set);
+      webevents.fireEvent("get_dialogs", []);
+
+      $(window).resize(function () {
+        set_proper_sizes();
+      });
+    });
+  </script>
+</body>
+
+</html>

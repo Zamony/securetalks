@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Delete dialogs</title>
+    <link rel="stylesheet" href="/static/bootstrap.min.css">
+    <link href="/static/open-iconic-bootstrap.min.css" rel="stylesheet">
+    <style>
+        .navbar {
+            background: #52344D;
+            /*#481D5A;*/
+        }
+
+        main .nav-item .active {
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <nav id="bar" class="navbar navbar-expand navbar-dark mb-3">
+        <a class="navbar-brand" href="/index.html">Secure Talks</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarCollapse" aria-controls="navbarCollapse"
+            aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/index.html">Chat</a>
+                </li>
+                <li class="nav-item active">
+                    <a class="nav-link" href="#">Config
+                        <span class="sr-only">(current)</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <main class="container">
+        <div class="row">
+            <div class="col-md-3">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/pages/add_dialog.html">Add Dialog</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#">Delete Dialog</a>
+                    </li>
+                </ul>
+            </div>
+            <div class="col-md-9 border-left">
+                    <div>
+                        <div>
+                            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0RtJMLgIMftX+JNF+xAF 4hINn0A1NSDpxCQZboEu/s5tTk0oV0wgFT0aPAEAjf6td3DxdIHLXO4XWnpRkPNx
+                            TGUZ8z2Cu/p7Xmw0AFuGqcDF3/JB43ekpfvLxHhL5E/Zo5CNMwC4LmDlcQtgHC0r w/Si8zWvxE5XTTio0upGjcGjWVGCTUwO4sTcuYKoVN0CloDNBYCgf/xbX5TtEf+A
+                            pb6lhAx4Iq4y7S64rtDWyFmhtQ1LQGvv4zy26B83Nj4LIKhgwZLacTeznBV8tnGm XCJjC0YuHzQtEFPnu1pLKm0qStaQ8yUaUZAKN0uJVLxVxna0JA+JBMrn2qYE0+0Y
+                            MQIDAQAB
+                        </div>
+                        <button class="btn btn-primary">Delete</button>
+                        <hr>
+                    </div>
+                    <div>
+                        <div>
+                            BAQADIQMY0+0EYq2nrMBJ+AJ0anxVxLVJu0NKAZUaUy8QatSq0mKLp1unPFEtQzHuY0CjJCX mGnt8VBnzeTcaLZwghKIL4jN38B62yz4vvGQL1QthmFyWDtr46S7y4qI4xAhl6bpA+fEtT5Xbx fgCYBNDolC0NVoKYucTs4OwUTCGVWjGcjGpu0oiTTX5ExvWz8iS0CHgtQclDmL4CwMNC5o5LhHxL 3FDcqGuFA0wmX7puC2z8ZUGTxNPkRpnWX4OXLHIdxD3dt6fjAEAPa0TFgw0Vo0kTt5suEobZQCxpDSN1A 0nNFAx+FNJ+XtfMIgLMJtR0AEQACKgCBIIMA8QACOAAFEQAB0w9GikhqkgBNAjIBIIM
+                        </div>
+                        <button class="btn btn-primary">Delete</button>
+                        <hr>
+                    </div>
+
+            </div>
+
+        </div>
+    </main>
+    <script src="/static/jquery.min.js "></script>
+    <script src="/static/popper.js "></script>
+    <script src="/static/bootstrap.min.js "></script>
+    <script src="/static/autosize.min.js "></script>
+    <script src="/webevents.js"></script>
+    <script>
+        $(document).on('click', "button", function (e) {
+            var uid = $(e.target).siblings("div").html();
+            webevents.fireEvent("delete_dialog", uid);
+            $(e.target).parent().remove();
+        });
+
+        $(document).ready(function () {
+            autosize($('textarea'));
+        });
+    </script>
+</body>
+
+</html>
