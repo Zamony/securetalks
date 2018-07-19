@@ -143,12 +143,12 @@ class Messages:
             for nid, txt, to_me, tm in self._cursor.fetchall()
         ]
 
-    def delete_message(self, node):
+    def delete_messages(self, node):
         self._cursor.execute(
             "DELETE FROM `Messages` WHERE `node_id`=?",
             (node.node_id, )
         )
-        self._cursor.commit()
+        self._conn.commit()
 
 
 class Ciphergrams:
@@ -237,8 +237,7 @@ class Storage:
             `node_id`	TEXT NOT NULL,
             `text`	TEXT NOT NULL,
             `to_me`	INTEGER NOT NULL DEFAULT 0,
-            `timestamp`	INTEGER NOT NULL,
-            PRIMARY KEY(node_id)
+            `timestamp`	INTEGER NOT NULL
         );
     """
 
