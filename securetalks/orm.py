@@ -21,6 +21,13 @@ class Ciphergram:
     content: str = field(compare=False)
     timestamp: int
 
+
+class NodeAlreadyExistsError(ValueError):
+    """An error occurring when node already exists"""
+
+class NodeNotFoundError(ValueError):
+    """An error occurring when node doesn't exists"""
+
 @dataclass
 class Node:
     node_id: str
