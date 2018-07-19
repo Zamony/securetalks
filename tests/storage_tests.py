@@ -8,26 +8,25 @@ from securetalks import storage
 from securetalks import orm
 
 
-class TestNodes(unittest.TestCase):
-    def setUp(self):
-        db_path = pathlib.Path(__file__).parent / "test.db"
-        if not db_path.exists():
-            self._create_empty_db(db_path)
-
-        self._db_name = str(db_path.parent / "test_active.db")
-        shutil.copyfile(db_path, self._db_name)
-
-        self._conn = sqlite3.connect(self._db_name)
-        self._cursor = self._conn.cursor()
-
-        self.nodes = storage.Nodes(self._conn, self._cursor)
-
-    def _create_empty_db(self, db_path):
-        db_name = str(db_path)
-        conn = sqlite3.connect(db_name)
+def setup_db():
+    db_path = pathlib.Path(__file__).parent / "test.db"
+    if not db_path.exists():
+        conn = sqlite3.connect(str(db_path))
         cursor = conn.cursor()
         cursor.executescript(storage.Storage.storage_init_script)
         conn.close()
+
+    db_name = str(db_path.parent / "test_active.db")
+    shutil.copyfile(db_path, db_name)
+    return db_name
+    
+
+class TestNodes(unittest.TestCase):
+    def setUp(self):
+        self._db_name = setup_db()
+        self._conn = sqlite3.connect(self._db_name)
+        self._cursor = self._conn.cursor()
+        self.nodes = storage.Nodes(self._conn, self._cursor)
 
     def tearDown(self):
         self._conn.close()
@@ -108,3 +107,62 @@ class TestNodes(unittest.TestCase):
         self.assertEqual(node.last_activity, 3000)
         self.assertEqual(node.unread_count, 2)
         self.assertEqual(node.alias, "Steve Jobs")
+
+class TestMessages(unittest.TestCase):
+    def setUp(self):
+        self._db_name = setup_db()
+        self._conn = sqlite3.connect(self._db_name)
+        self._cursor = self._conn.cursor()
+        self.messages = storage.Messages(self._conn, self._cursor)
+
+    def tearDown(self):
+        self._conn.close()
+        pathlib.Path(self._db_name).unlink()
+
+    def test_add_message(self):
+        message = orm.Message("receiver", "message to a", False, 1000)
+        self.messages.add_message(message)
+        self._cursor.execute(
+            "SELECT * FROM Messages WHERE node_id=?",
+            (message.node_id, )
+        )
+
+        node_id, text, to_me, timestamp = self._cursor.fetchone()
+        self.assertEqual(node_id, message.node_id)
+        self.assertEqual(text, message.text)
+        self.assertFalse(to_me)
+        self.assertEqual(timestamp, message.timestamp)
+
+    def test_get_messages_limit_none_offset_none(self):
+        node = orm.Node("c")
+        messages = self.messages.get_messages(node)
+
+        self.assertEqual(len(messages), 3)
+        self.assertEqual(messages[0].node_id, node.node_id)
+        self.assertEqual(messages[0].text, "message3 c to me")
+        self.assertTrue(messages[0].to_me)
+        self.assertEqual(messages[0].timestamp, 6000)
+
+    def test_get_messages_limit_offset(self):
+        node = orm.Node("c")
+        messages = self.messages.get_messages(node, limit=3, offset=1)
+        self.assertEqual(len(messages), 2)
+        self.assertEqual(messages[0].node_id, node.node_id)
+        self.assertEqual(messages[0].text, "message2 c from me")
+        self.assertFalse(messages[0].to_me)
+        self.assertEqual(messages[0].timestamp, 5000)
+
+    def test_get_messages_limit(self):
+        node = orm.Node("c")
+        messages = self.messages.get_messages(node, limit=2)
+        self.assertEqual(len(messages), 2)
+
+    def test_delete_messages(self):
+        node = orm.Node("b")
+        old_messages = self.messages.get_messages(node)
+        self.messages.delete_messages(node)
+        new_messages = self.messages.get_messages(node)
+
+        self.assertEqual(len(old_messages), 2)
+        self.assertEqual(len(new_messages), 0)
+
