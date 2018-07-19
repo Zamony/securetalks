@@ -4,26 +4,14 @@ import pathlib
 import sqlite3
 import unittest
 
+from . import testing_utils
+
 from securetalks import storage
 from securetalks import orm
 
-
-def setup_db():
-    db_path = pathlib.Path(__file__).parent / "test.db"
-    if not db_path.exists():
-        conn = sqlite3.connect(str(db_path))
-        cursor = conn.cursor()
-        cursor.executescript(storage.Storage.storage_init_script)
-        conn.close()
-
-    db_name = str(db_path.parent / "test_active.db")
-    shutil.copyfile(db_path, db_name)
-    return db_name
-    
-
 class TestNodes(unittest.TestCase):
     def setUp(self):
-        self._db_name = setup_db()
+        self._db_name = testing_utils.setup_db()
         self._conn = sqlite3.connect(self._db_name)
         self._cursor = self._conn.cursor()
         self.nodes = storage.Nodes(self._conn, self._cursor)
@@ -110,7 +98,7 @@ class TestNodes(unittest.TestCase):
 
 class TestMessages(unittest.TestCase):
     def setUp(self):
-        self._db_name = setup_db()
+        self._db_name = testing_utils.setup_db()
         self._conn = sqlite3.connect(self._db_name)
         self._cursor = self._conn.cursor()
         self.messages = storage.Messages(self._conn, self._cursor)
@@ -169,7 +157,7 @@ class TestMessages(unittest.TestCase):
 
 class TestCiphergrams(unittest.TestCase):
     def setUp(self):
-        self._db_name = setup_db()
+        self._db_name = testing_utils.setup_db()
         self._conn = sqlite3.connect(self._db_name)
         self._cursor = self._conn.cursor()
         self.ciphergrams = storage.Ciphergrams(self._conn, self._cursor)
@@ -184,9 +172,9 @@ class TestCiphergrams(unittest.TestCase):
         self.assertEqual(ciphergrams[0].content, "content1")
         self.assertEqual(ciphergrams[0].timestamp, 1000)
 
-    def test_delete_old_ones(self):
+    def test_delete_expired(self):
         old_ciphergrams = self.ciphergrams.list_all()
-        self.ciphergrams.delete_old_ones(60*60*24*2)
+        self.ciphergrams.delete_expired(60*60*24*2)
         new_ciphergrams = self.ciphergrams.list_all()
 
         self.assertEqual(len(old_ciphergrams), 3)
@@ -203,7 +191,7 @@ class TestCiphergrams(unittest.TestCase):
 
 class TestIPAddresses(unittest.TestCase):
     def setUp(self):
-        self._db_name = setup_db()
+        self._db_name = testing_utils.setup_db()
         self._conn = sqlite3.connect(self._db_name)
         self._cursor = self._conn.cursor()
         self.ipaddresses = storage.IPAddresses(self._conn, self._cursor)
@@ -227,9 +215,9 @@ class TestIPAddresses(unittest.TestCase):
         self.assertEqual(ipaddresses[0].address, "1.1.1.1")
         self.assertEqual(ipaddresses[0].last_activity, 1000)
 
-    def test_delete_old_ones(self):
+    def test_delete_expired(self):
         old_ipaddresses = self.ipaddresses.list_all()
-        self.ipaddresses.delete_old_ones(60*60*24*2)
+        self.ipaddresses.delete_expired(60*60*24*2)
         new_ipaddresses = self.ipaddresses.list_all()
 
         self.assertEqual(len(old_ipaddresses), 3)

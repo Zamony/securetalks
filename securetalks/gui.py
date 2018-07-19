@@ -44,7 +44,7 @@ class WebeventsGUI:
         try:
             uid, alias = data
         except ValueError:
-            self.presentor_obj.add_dialog(data)
+            self.presentor_obj.add_dialog(uid)
         else:
             self.presentor_obj.add_dialog(uid, alias)
 
@@ -54,45 +54,6 @@ class WebeventsGUI:
     def _make_dialog_read(self, uid):
         self.presentor_obj.make_dialog_read(uid)
 
-
-if __name__ == "__main__":
-    presentor_obj = presentor.Presentor()
-    gui = WebeventsGUI(presentor_obj)
-
-    time.sleep(3)
-    gui.push_message({
-        "to_me": True,
-        "text": "Hello! This is from Python!)))",
-        "timestamp": int(time.time()),
-        "talking_to": "fj4398r32j0029329dij",
-    })
-    time.sleep(3)
-    gui.push_message({
-        "to_me": True,
-        "text": "Second message!)))",
-        "timestamp": int(time.time()),
-        "talking_to": "8dws712edgyw198h21us",
-    })
-    time.sleep(3)
-    gui.push_message({
-        "to_me": True,
-        "text": "Third message!)))",
-        "timestamp": int(time.time()),
-        "talking_to": "8dws712edgyw198h21us",
-    })
-    time.sleep(3)
-    gui.push_message({
-        "to_me": True,
-        "text": "It's me!)))",
-        "timestamp": int(time.time()),
-        "talking_to": "fj4398r32j0029329dij",
-    })
-
-    try:
-        while True:
-            pass
-    except KeyboardInterrupt:
-        gui.terminate()
 
 
 

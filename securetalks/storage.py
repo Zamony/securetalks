@@ -89,7 +89,7 @@ class Nodes:
 
     def list_all(self):
         self._cursor.execute(
-            "SELECT * FROM `Nodes` ORDER BY `last_activity`"
+            "SELECT * FROM `Nodes` ORDER BY `last_activity` DESC"
         )
         return [orm.Node(*node) for node in self._cursor.fetchall()]
 
@@ -156,7 +156,7 @@ class Ciphergrams:
         self._conn = conn
         self._cursor = cursor
 
-    def delete_old_ones(self, timespan):
+    def delete_expired(self, timespan):
         self._cursor.execute(
             "DELETE FROM `Ciphergrams` WHERE ? - `timestamp` > ?",
             (
@@ -194,7 +194,7 @@ class IPAddresses:
         address_exists, = self._cursor.fetchone()
         return True if address_exists else False
 
-    def delete_old_ones(self, timespan):
+    def delete_expired(self, timespan):
         self._cursor.execute(
             "DELETE FROM `IPAddresses` WHERE ? - `last_activity` > ?",
             (
@@ -273,15 +273,18 @@ class Storage:
     def __exit__(self, type, value, traceback):
         self._conn.close()
 
+    def close(self):
+        self._conn.close()
+
     def _create_tables_if_needed(self):
         try:
             self._cursor.executescript(self.storage_init_script)
         except sqlite3.Error:
             pass
 
-    def delete_old_data(self):
-        self.ciphergrams.delete_old_ones(self._ttl)
-        self.ipaddresses.delete_old_ones(self._ttl)
+    def delete_expired_data(self):
+        self.ciphergrams.delete_expired(self._ttl)
+        self.ipaddresses.delete_expired(self._ttl)
 
 
 if __name__ == "__main__":
