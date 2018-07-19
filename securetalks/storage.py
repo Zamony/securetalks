@@ -183,6 +183,17 @@ class IPAddresses:
         self._conn = conn
         self._cursor = cursor
 
+    def check_address_exists(self, ipaddress):
+        self._cursor.execute(
+            """
+            SELECT EXISTS(SELECT 1 FROM `IPAddresses`
+            WHERE address=? LIMIT 1)
+            """,
+            (ipaddress.address,)
+        )
+        address_exists, = self._cursor.fetchone()
+        return True if address_exists else False
+
     def delete_old_ones(self, timespan):
         self._cursor.execute(
             "DELETE FROM `IPAddresses` WHERE ? - `last_activity` > ?",
@@ -192,14 +203,18 @@ class IPAddresses:
         )
         self._conn.commit()
 
-    def add_ipaddress(self, ipaddress):
+    def add_address(self, ipaddress):
+        if self.check_address_exists(ipaddress):
+            raise orm.IPAddressAlreadyExistsError
         self._cursor.execute(
             "INSERT INTO `IPAddresses` VALUES (?, ?)",
             (ipaddress.address, ipaddress.last_activity)
         )
         self._conn.commit()
 
-    def update_ipaddress(self, ipaddress):
+    def update_address(self, ipaddress):
+        if not self.check_address_exists(ipaddress):
+            raise orm.IPAddressNotFoundError
         ipaddress.update_activity()
         self._cursor.execute(
             """

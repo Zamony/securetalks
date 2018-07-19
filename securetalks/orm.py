@@ -1,6 +1,18 @@
 import time
 from dataclasses import dataclass, field
 
+class IPAddressAlreadyExistsError(ValueError):
+    """An error occurring when ip address already exists"""
+
+class IPAddressNotFoundError(ValueError):
+    """An error occurring when ip address doesn't exists"""
+
+class NodeAlreadyExistsError(ValueError):
+    """An error occurring when node already exists"""
+
+class NodeNotFoundError(ValueError):
+    """An error occurring when node doesn't exists"""
+
 @dataclass(order=True)
 class Message:
     node_id: str
@@ -20,13 +32,6 @@ class IPAddress:
 class Ciphergram:
     content: str = field(compare=False)
     timestamp: int
-
-
-class NodeAlreadyExistsError(ValueError):
-    """An error occurring when node already exists"""
-
-class NodeNotFoundError(ValueError):
-    """An error occurring when node doesn't exists"""
 
 @dataclass
 class Node:

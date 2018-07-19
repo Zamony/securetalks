@@ -212,6 +212,15 @@ class TestIPAddresses(unittest.TestCase):
         self._conn.close()
         pathlib.Path(self._db_name).unlink()
 
+    def test_check_address_exists(self):
+        ip_ok = orm.IPAddress("1.1.1.1")
+        ip_fail = orm.IPAddress("7.7.7.7")
+        ip_ok_exists = self.ipaddresses.check_address_exists(ip_ok)
+        ip_fail_exists = self.ipaddresses.check_address_exists(ip_fail)
+        
+        self.assertTrue(ip_ok_exists)
+        self.assertFalse(ip_fail_exists)
+
     def test_list_all(self):
         ipaddresses = self.ipaddresses.list_all()
         self.assertEqual(len(ipaddresses), 3)
@@ -226,19 +235,24 @@ class TestIPAddresses(unittest.TestCase):
         self.assertEqual(len(old_ipaddresses), 3)
         self.assertEqual(len(new_ipaddresses), 1)
 
-    def test_add_ciphergram(self):
+    def test_add_ipaddress(self):
         ipaddress = orm.IPAddress("7.7.7.7", 7000)
         old_ipaddresses = self.ipaddresses.list_all()
-        self.ipaddresses.add_ipaddress(ipaddress)
+        self.ipaddresses.add_address(ipaddress)
         new_ipaddresses = self.ipaddresses.list_all()
         
         self.assertNotIn(ipaddress, old_ipaddresses)
         self.assertIn(ipaddress, new_ipaddresses)
 
+    def test_add_ipaddress_failed(self):
+        ipaddress = orm.IPAddress("1.1.1.1")
+        with self.assertRaises(orm.IPAddressAlreadyExistsError):
+            self.ipaddresses.add_address(ipaddress)
+    
     def test_update_ipaddress(self):
         delta = 2
         ipaddress = orm.IPAddress("1.1.1.1")
-        self.ipaddresses.update_ipaddress(ipaddress)
+        self.ipaddresses.update_address(ipaddress)
         self._cursor.execute(
             "SELECT last_activity FROM IPAddresses WHERE address=?",
             (ipaddress.address, )
@@ -249,3 +263,7 @@ class TestIPAddresses(unittest.TestCase):
         self.assertLessEqual(curr_time - last_activity_db, delta)
         self.assertLessEqual(curr_time - ipaddress.last_activity, delta)
         
+    def test_update_ipaddress_failed(self):
+        ipaddress = orm.IPAddress("7.7.7.7")
+        with self.assertRaises(orm.IPAddressNotFoundError):
+            self.ipaddresses.update_address(ipaddress)
