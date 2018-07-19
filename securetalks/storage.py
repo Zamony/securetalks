@@ -1,8 +1,9 @@
-import time
 import pathlib
 import sqlite3
+import time
 
-import orm
+from . import orm
+
 
 class Nodes:
     def __init__(self, conn, cursor):
@@ -11,66 +12,67 @@ class Nodes:
 
     def update_node_activity(self, node):
         node.update_activity()
-        self._cursor.execute("""
-        UPDATE `Nodes` SET `last_activity`=? WHERE `node_id`=?
-        """,
-        (node.last_activity, node.node_id)
+        self._cursor.execute(
+            "UPDATE `Nodes` SET `last_activity`=? WHERE `node_id`=?",
+            (node.last_activity, node.node_id)
         )
         self._conn.commit()
 
     def increment_node_unread(self, node):
         node.increment_unread()
-        self._cursor.execute("""
-        UPDATE `Nodes` SET `unread_count` = `unread_count`+1
-        WHERE `node_id`=?
-        """,
-        (node.node_id,)
-        )            
+        self._cursor.execute(
+            """
+            UPDATE `Nodes` SET `unread_count` = `unread_count`+1
+            WHERE `node_id`=?
+            """,
+            (node.node_id,)
+        )
         self._conn.commit()
 
-    def set_node_unread_to_zero(self):
+    def set_node_unread_to_zero(self, node):
         node.set_unread_to_zero()
-        self._cursor.execute("""
-        UPDATE `Nodes` SET `unread_count` = 0
-        WHERE `node_id`=?
-        """,
-        (node.node_id,)
-        )            
+        self._cursor.execute(
+            """
+            UPDATE `Nodes` SET `unread_count` = 0
+            WHERE `node_id`=?
+            """,
+            (node.node_id,)
+        )
         self._conn.commit()
 
     def check_node_exists(self, node):
-        self._cursor.execute("""
-        SELECT EXISTS(SELECT 1 FROM `Nodes`
-        WHERE node_id=? LIMIT 1)
-        """,
-        (node.node_id,)
+        self._cursor.execute(
+            """
+            SELECT EXISTS(SELECT 1 FROM `Nodes`
+            WHERE node_id=? LIMIT 1)
+            """,
+            (node.node_id,)
         )
         node_exists, = self._cursor.fetchone()
         return True if node_exists else False
 
     def add_node(self, node):
         self._cursor.execute(
-        "INSERT INTO `Nodes` VALUES (?, ?, ?, ?)",
-        (
-            node.node_id, node.last_activity,
-            node.unread_count, node.alias
-        )
+            "INSERT INTO `Nodes` VALUES (?, ?, ?, ?)",
+            (
+                node.node_id, node.last_activity,
+                node.unread_count, node.alias
+            ),
         )
         self._conn.commit()
 
     def delete_node(self, node):
         self._cursor.execute(
-        "DELETE FROM `Nodes` WHERE `node_id`=?",
-        (node.node_id,)
+            "DELETE FROM `Nodes` WHERE `node_id`=?",
+            (node.node_id,)
         )
         self._conn.commit()
 
     def get_node_by_id(self, node_id):
         self._cursor.execute(
             "SELECT * FROM `Nodes` WHERE `node_id`=?",
-            (node_id, )
+            (node_id,)
         )
-
         node = self._cursor.fetchone()
         return orm.Node(*node)
 
@@ -79,7 +81,6 @@ class Nodes:
             "SELECT * FROM `Nodes` ORDER BY `last_activity`"
         )
         return [orm.Node(*node) for node in self._cursor.fetchall()]
-
 
 
 class Messages:
@@ -93,8 +94,7 @@ class Messages:
             (
                 message.node_id,
                 message.text,
-                1 if message.to_me else 0,
-                message.timestamp
+                1 if message.to_me else 0, message.timestamp
             )
         )
         self._conn.commit()
@@ -102,27 +102,27 @@ class Messages:
     def get_messages(self, node, limit=None, offset=None):
         if limit is not None and offset is not None:
             self._cursor.execute(
-            """
-            SELECT * FROM `Messages` WHERE `node_id`=?
-            ORDER BY `timestamp` DESC LIMIT ? OFFSET ?;
-            """,
-            (node.node_id, limit, offset)
+                """
+                SELECT * FROM `Messages` WHERE `node_id`=?
+                ORDER BY `timestamp` DESC LIMIT ? OFFSET ?;
+                """,
+                (node.node_id, limit, offset)
             )
         elif limit is None and offset is None:
             self._cursor.execute(
-            """
-            SELECT * FROM `Messages` WHERE `node_id`=?
-            ORDER BY `timestamp` DESC;
-            """,
-            (node.node_id,)
+                """
+                SELECT * FROM `Messages` WHERE `node_id`=?
+                ORDER BY `timestamp` DESC;
+                """,
+                (node.node_id, )
             )
         elif limit is not None:
             self._cursor.execute(
-            """
-            SELECT * FROM `Messages` WHERE `node_id`=?
-            ORDER BY `timestamp` DESC LIMIT ?;
-            """,
-            (node.node_id, limit)
+                """
+                SELECT * FROM `Messages` WHERE `node_id`=?
+                ORDER BY `timestamp` DESC LIMIT ?;
+                """,
+                (node.node_id, limit)
             )
         else:
             raise sqlite3.Error
@@ -135,9 +135,10 @@ class Messages:
     def delete_message(self, node):
         self._cursor.execute(
             "DELETE FROM `Messages` WHERE `node_id`=?",
-            (node.node_id,)
+            (node.node_id, )
         )
         self._cursor.commit()
+
 
 class Ciphergrams:
     def __init__(self, conn, cursor):
@@ -147,7 +148,10 @@ class Ciphergrams:
     def delete_old_ones(self, timespan):
         self._cursor.execute(
             "DELETE FROM `Ciphergrams` WHERE ? - `timestamp` > ?",
-            (int(time.time()), timespan)
+            (
+                int(time.time()),
+                timespan,
+            )
         )
         self._conn.commit()
 
@@ -162,6 +166,7 @@ class Ciphergrams:
         self._cursor.execute("SELECT * FROM `Ciphergrams`")
         return [orm.Ciphergram(*cph) for cph in self._cursor.fetchall()]
 
+
 class IPAddresses:
     def __init__(self, conn, cursor):
         self._conn = conn
@@ -170,7 +175,9 @@ class IPAddresses:
     def delete_old_ones(self, timespan):
         self._cursor.execute(
             "DELETE FROM `IPAddresses` WHERE ? - `last_activity` > ?",
-            (int(time.time()), timespan)
+            (
+                int(time.time()), timespan
+            )
         )
         self._conn.commit()
 
@@ -193,9 +200,37 @@ class IPAddresses:
 
     def list_all(self):
         self._cursor.execute("SELECT * FROM `IPAddresses`")
-        return [orm.IPAddress(*cph) for ip in self._cursor.fetchall()]
+        return [orm.IPAddress(*ip) for ip in self._cursor.fetchall()]
+
 
 class Storage:
+
+    storage_init_script = """
+        CREATE TABLE `IPAddresses` (
+            `address`	TEXT NOT NULL,
+            `last_activity`	INTEGER NOT NULL,
+            PRIMARY KEY(address)
+        );
+        CREATE TABLE `Ciphergrams` (
+            `content`	TEXT NOT NULL,
+            `timestamp`	INTEGER NOT NULL
+        );
+        CREATE TABLE `Nodes` (
+            `node_id`	TEXT NOT NULL,
+            `last_activity`	INTEGER NOT NULL,
+            `unread_count`	INTEGER NOT NULL DEFAULT 0,
+            `alias`	TEXT,
+            PRIMARY KEY(node_id)
+        );
+        CREATE TABLE `Messages` (
+            `node_id`	TEXT NOT NULL,
+            `text`	TEXT NOT NULL,
+            `to_me`	INTEGER NOT NULL DEFAULT 0,
+            `timestamp`	INTEGER NOT NULL,
+            PRIMARY KEY(node_id)
+        );
+    """
+
     def __init__(self, db_path, ttl):
         self._ttl = int(ttl)
         self._conn = sqlite3.connect(str(db_path))
@@ -215,32 +250,7 @@ class Storage:
 
     def _create_tables_if_needed(self):
         try:
-            self._cursor.executescript(
-            """
-            CREATE TABLE `IPAddresses` (
-                `address`	TEXT NOT NULL,
-                `last_activity`	INTEGER NOT NULL,
-                PRIMARY KEY(address)
-            );
-            CREATE TABLE `Ciphergrams` (
-	            `content`	TEXT NOT NULL,
-	            `timestamp`	INTEGER NOT NULL
-            );
-            CREATE TABLE `Nodes` (
-                `node_id`	TEXT NOT NULL,
-                `last_activity`	INTEGER NOT NULL,
-                `unread_count`	INTEGER NOT NULL DEFAULT 0,
-                PRIMARY KEY(node_id)
-            );
-            CREATE TABLE `Messages` (
-                `node_id`	TEXT NOT NULL,
-                `text`	TEXT NOT NULL,
-                `to_me`	INTEGER NOT NULL DEFAULT 0,
-                `timestamp`	INTEGER NOT NULL,
-                PRIMARY KEY(node_id)
-            );
-            """
-            )
+            self._cursor.executescript(self.storage_init_script)
         except sqlite3.Error:
             pass
 
