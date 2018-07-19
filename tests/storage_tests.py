@@ -201,3 +201,51 @@ class TestCiphergrams(unittest.TestCase):
         self.assertNotIn(ciphergram, old_ciphergrams)
         self.assertIn(ciphergram, new_ciphergrams)
 
+class TestIPAddresses(unittest.TestCase):
+    def setUp(self):
+        self._db_name = setup_db()
+        self._conn = sqlite3.connect(self._db_name)
+        self._cursor = self._conn.cursor()
+        self.ipaddresses = storage.IPAddresses(self._conn, self._cursor)
+
+    def tearDown(self):
+        self._conn.close()
+        pathlib.Path(self._db_name).unlink()
+
+    def test_list_all(self):
+        ipaddresses = self.ipaddresses.list_all()
+        self.assertEqual(len(ipaddresses), 3)
+        self.assertEqual(ipaddresses[0].address, "1.1.1.1")
+        self.assertEqual(ipaddresses[0].last_activity, 1000)
+
+    def test_delete_old_ones(self):
+        old_ipaddresses = self.ipaddresses.list_all()
+        self.ipaddresses.delete_old_ones(60*60*24*2)
+        new_ipaddresses = self.ipaddresses.list_all()
+
+        self.assertEqual(len(old_ipaddresses), 3)
+        self.assertEqual(len(new_ipaddresses), 1)
+
+    def test_add_ciphergram(self):
+        ipaddress = orm.IPAddress("7.7.7.7", 7000)
+        old_ipaddresses = self.ipaddresses.list_all()
+        self.ipaddresses.add_ipaddress(ipaddress)
+        new_ipaddresses = self.ipaddresses.list_all()
+        
+        self.assertNotIn(ipaddress, old_ipaddresses)
+        self.assertIn(ipaddress, new_ipaddresses)
+
+    def test_update_ipaddress(self):
+        delta = 2
+        ipaddress = orm.IPAddress("1.1.1.1")
+        self.ipaddresses.update_ipaddress(ipaddress)
+        self._cursor.execute(
+            "SELECT last_activity FROM IPAddresses WHERE address=?",
+            (ipaddress.address, )
+        )
+        last_activity_db, = self._cursor.fetchone()
+        curr_time = time.time()
+        
+        self.assertLessEqual(curr_time - last_activity_db, delta)
+        self.assertLessEqual(curr_time - ipaddress.last_activity, delta)
+        
