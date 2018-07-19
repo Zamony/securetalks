@@ -166,3 +166,38 @@ class TestMessages(unittest.TestCase):
         self.assertEqual(len(old_messages), 2)
         self.assertEqual(len(new_messages), 0)
 
+
+class TestCiphergrams(unittest.TestCase):
+    def setUp(self):
+        self._db_name = setup_db()
+        self._conn = sqlite3.connect(self._db_name)
+        self._cursor = self._conn.cursor()
+        self.ciphergrams = storage.Ciphergrams(self._conn, self._cursor)
+
+    def tearDown(self):
+        self._conn.close()
+        pathlib.Path(self._db_name).unlink()
+
+    def test_list_all(self):
+        ciphergrams = self.ciphergrams.list_all()
+        self.assertEqual(len(ciphergrams), 3)
+        self.assertEqual(ciphergrams[0].content, "content1")
+        self.assertEqual(ciphergrams[0].timestamp, 1000)
+
+    def test_delete_old_ones(self):
+        old_ciphergrams = self.ciphergrams.list_all()
+        self.ciphergrams.delete_old_ones(60*60*24*2)
+        new_ciphergrams = self.ciphergrams.list_all()
+
+        self.assertEqual(len(old_ciphergrams), 3)
+        self.assertEqual(len(new_ciphergrams), 1)
+
+    def test_add_ciphergram(self):
+        ciphergram = orm.Ciphergram("my content", 7000)
+        old_ciphergrams = self.ciphergrams.list_all()
+        self.ciphergrams.add_ciphergram(ciphergram)
+        new_ciphergrams = self.ciphergrams.list_all()
+
+        self.assertNotIn(ciphergram, old_ciphergrams)
+        self.assertIn(ciphergram, new_ciphergrams)
+
