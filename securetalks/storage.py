@@ -4,13 +4,14 @@ import time
 
 from . import orm
 
-
 class Nodes:
     def __init__(self, conn, cursor):
         self._conn = conn
         self._cursor = cursor
 
     def update_node_activity(self, node):
+        if not self.check_node_exists(node):
+            raise orm.NodeNotFoundError
         node.update_activity()
         self._cursor.execute(
             "UPDATE `Nodes` SET `last_activity`=? WHERE `node_id`=?",
@@ -19,6 +20,8 @@ class Nodes:
         self._conn.commit()
 
     def increment_node_unread(self, node):
+        if not self.check_node_exists(node):
+            raise orm.NodeNotFoundError
         node.increment_unread()
         self._cursor.execute(
             """
@@ -30,6 +33,8 @@ class Nodes:
         self._conn.commit()
 
     def set_node_unread_to_zero(self, node):
+        if not self.check_node_exists(node):
+            raise orm.NodeNotFoundError
         node.set_unread_to_zero()
         self._cursor.execute(
             """
@@ -52,6 +57,8 @@ class Nodes:
         return True if node_exists else False
 
     def add_node(self, node):
+        if self.check_node_exists(node):
+            raise orm.NodeAlreadyExistsError
         self._cursor.execute(
             "INSERT INTO `Nodes` VALUES (?, ?, ?, ?)",
             (
@@ -62,6 +69,8 @@ class Nodes:
         self._conn.commit()
 
     def delete_node(self, node):
+        if not self.check_node_exists(node):
+            raise orm.NodeNotFoundError
         self._cursor.execute(
             "DELETE FROM `Nodes` WHERE `node_id`=?",
             (node.node_id,)
@@ -69,6 +78,8 @@ class Nodes:
         self._conn.commit()
 
     def get_node_by_id(self, node_id):
+        if not self.check_node_exists(orm.Node(node_id)):
+            raise orm.NodeNotFoundError
         self._cursor.execute(
             "SELECT * FROM `Nodes` WHERE `node_id`=?",
             (node_id,)
