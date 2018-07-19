@@ -203,7 +203,7 @@ class IPAddresses:
         ipaddress.update_activity()
         self._cursor.execute(
             """
-            UPDATE `Nodes` SET `last_activity`=? WHERE `address`=?
+            UPDATE `IPAddresses` SET `last_activity`=? WHERE `address`=?
             """,
             (ipaddress.last_activity, ipaddress.address)
         )
