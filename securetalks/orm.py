@@ -23,6 +23,7 @@ class Message:
 @dataclass(order=True)
 class IPAddress:
     address: str = field(compare=False)
+    port: int = field(compare=False)
     last_activity: int = field(default_factory=lambda: int(time.time()))
 
     def update_activity(self):

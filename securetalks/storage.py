@@ -187,9 +187,9 @@ class IPAddresses:
         self._cursor.execute(
             """
             SELECT EXISTS(SELECT 1 FROM `IPAddresses`
-            WHERE address=? LIMIT 1)
+            WHERE address=? AND port=? LIMIT 1)
             """,
-            (ipaddress.address,)
+            (ipaddress.address, ipaddress.port)
         )
         address_exists, = self._cursor.fetchone()
         return True if address_exists else False
@@ -207,8 +207,8 @@ class IPAddresses:
         if self.check_address_exists(ipaddress):
             raise orm.IPAddressAlreadyExistsError
         self._cursor.execute(
-            "INSERT INTO `IPAddresses` VALUES (?, ?)",
-            (ipaddress.address, ipaddress.last_activity)
+            "INSERT INTO `IPAddresses` VALUES (?, ?, ?)",
+            (ipaddress.address, ipaddress.port, ipaddress.last_activity)
         )
         self._conn.commit()
 
@@ -218,9 +218,10 @@ class IPAddresses:
         ipaddress.update_activity()
         self._cursor.execute(
             """
-            UPDATE `IPAddresses` SET `last_activity`=? WHERE `address`=?
+            UPDATE `IPAddresses` SET `last_activity`=?
+            WHERE `address`=? AND `port`=?
             """,
-            (ipaddress.last_activity, ipaddress.address)
+            (ipaddress.last_activity, ipaddress.address, ipaddress.port)
         )
         self._conn.commit()
 
@@ -234,8 +235,9 @@ class Storage:
     storage_init_script = """
         CREATE TABLE `IPAddresses` (
             `address`	TEXT NOT NULL,
+            `port`	INTEGER NOT NULL,
             `last_activity`	INTEGER NOT NULL,
-            PRIMARY KEY(address)
+            PRIMARY KEY(address,port)
         );
         CREATE TABLE `Ciphergrams` (
             `content`	TEXT NOT NULL,

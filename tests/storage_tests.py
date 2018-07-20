@@ -201,8 +201,8 @@ class TestIPAddresses(unittest.TestCase):
         pathlib.Path(self._db_name).unlink()
 
     def test_check_address_exists(self):
-        ip_ok = orm.IPAddress("1.1.1.1")
-        ip_fail = orm.IPAddress("7.7.7.7")
+        ip_ok = orm.IPAddress("1.1.1.1", 8080)
+        ip_fail = orm.IPAddress("7.7.7.7", 7777)
         ip_ok_exists = self.ipaddresses.check_address_exists(ip_ok)
         ip_fail_exists = self.ipaddresses.check_address_exists(ip_fail)
         
@@ -213,6 +213,7 @@ class TestIPAddresses(unittest.TestCase):
         ipaddresses = self.ipaddresses.list_all()
         self.assertEqual(len(ipaddresses), 3)
         self.assertEqual(ipaddresses[0].address, "1.1.1.1")
+        self.assertEqual(ipaddresses[0].port, 8080)
         self.assertEqual(ipaddresses[0].last_activity, 1000)
 
     def test_delete_expired(self):
@@ -224,7 +225,7 @@ class TestIPAddresses(unittest.TestCase):
         self.assertEqual(len(new_ipaddresses), 1)
 
     def test_add_ipaddress(self):
-        ipaddress = orm.IPAddress("7.7.7.7", 7000)
+        ipaddress = orm.IPAddress("7.7.7.7", 7777)
         old_ipaddresses = self.ipaddresses.list_all()
         self.ipaddresses.add_address(ipaddress)
         new_ipaddresses = self.ipaddresses.list_all()
@@ -233,17 +234,17 @@ class TestIPAddresses(unittest.TestCase):
         self.assertIn(ipaddress, new_ipaddresses)
 
     def test_add_ipaddress_failed(self):
-        ipaddress = orm.IPAddress("1.1.1.1")
+        ipaddress = orm.IPAddress("1.1.1.1", 8080)
         with self.assertRaises(orm.IPAddressAlreadyExistsError):
             self.ipaddresses.add_address(ipaddress)
     
     def test_update_ipaddress(self):
         delta = 2
-        ipaddress = orm.IPAddress("1.1.1.1")
+        ipaddress = orm.IPAddress("1.1.1.1", 8080)
         self.ipaddresses.update_address(ipaddress)
         self._cursor.execute(
-            "SELECT last_activity FROM IPAddresses WHERE address=?",
-            (ipaddress.address, )
+            "SELECT last_activity FROM IPAddresses WHERE address=? and port=?",
+            (ipaddress.address, ipaddress.port)
         )
         last_activity_db, = self._cursor.fetchone()
         curr_time = time.time()
@@ -252,6 +253,6 @@ class TestIPAddresses(unittest.TestCase):
         self.assertLessEqual(curr_time - ipaddress.last_activity, delta)
         
     def test_update_ipaddress_failed(self):
-        ipaddress = orm.IPAddress("7.7.7.7")
+        ipaddress = orm.IPAddress("8.8.8.8", 8888)
         with self.assertRaises(orm.IPAddressNotFoundError):
             self.ipaddresses.update_address(ipaddress)
