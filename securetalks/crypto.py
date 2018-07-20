@@ -3,6 +3,7 @@ import json
 import logging
 import pathlib
 
+import cryptography
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
@@ -10,7 +11,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.fernet import Fernet
 
-import proof_of_work
+from . import proof_of_work
 
 
 logging.basicConfig(level=logging.DEBUG)

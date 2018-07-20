@@ -1,11 +1,13 @@
-import crypto
-import storage
-import snakesockets
+import json
+
+from . import crypto
+from . import storage
+from . import snakesockets
 
 class MessageParsingError(Exception):
     """Error when received bytes aren't being a message"""
 
-class Node:
+class MessageManager:
     def __init__(self, storage, mcrypto, port):
         self.storage = storage
         self.mcrypto = mcrypto
@@ -14,7 +16,7 @@ class Node:
 
     def send_message_to(self, user_key, message):
         try:
-            ciphergram = mcrypto.get_ciphergram(message)
+            ciphergram = self.mcrypto.get_ciphergram(message)
         except Exception:
             pass
         else:
@@ -40,11 +42,11 @@ class Node:
     def _broadcast_from(self, ip_address, message):
         for address in self.storage.known_addresses:
             if address != ip_address:
-                self._send_to(address, message)
+                self._sendto(address, message)
 
     def _broadcast(self, message):
         for address in self.storage.known_addresses:
-            self._send_to(address, message)
+            self._sendto(address, message)
 
     def _sendto(self, ip_address, message):
         client_socket = snakesockets.TCP()
@@ -52,11 +54,11 @@ class Node:
         client_socket.send(message)
         client_socket.close()
 
-    def _process_ciphergram(self, cipherfram):
+    def _process_ciphergram(self, ciphergram):
         try:
-            user_pub_key, msg = self.mcrypto.get_plaintext()
+            user_pub_key, msg = self.mcrypto.get_plaintext(ciphergram)
         except crypto.MessageDecryptionError:
-            self.storage.add_ciphergram(message)
+            self.storage.add_ciphergram(ciphergram)
         except crypto.MessageCryptoError:
             pass
         else:
