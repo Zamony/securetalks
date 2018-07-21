@@ -166,6 +166,15 @@ class TestCiphergrams(unittest.TestCase):
         self._conn.close()
         pathlib.Path(self._db_name).unlink()
 
+    def test_check_ciphergram_exists(self):
+        cph_ok = orm.Ciphergram("content1", 1000)
+        cph_ok_result = self.ciphergrams.check_ciphergram_exists(cph_ok)
+        cph_fail = orm.Ciphergram("content100", 1000)
+        cph_fail_result = self.ciphergrams.check_ciphergram_exists(cph_fail)
+
+        self.assertTrue(cph_ok_result)
+        self.assertFalse(cph_fail_result)
+
     def test_list_all(self):
         ciphergrams = self.ciphergrams.list_all()
         self.assertEqual(len(ciphergrams), 3)

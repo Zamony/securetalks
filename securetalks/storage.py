@@ -166,7 +166,20 @@ class Ciphergrams:
         )
         self._conn.commit()
 
+    def check_ciphergram_exists(self, ciphergram):
+        self._cursor.execute(
+            """
+            SELECT EXISTS(SELECT 1 FROM `Ciphergrams`
+            WHERE content=? AND timestamp=? LIMIT 1)
+            """,
+            (ciphergram.content, ciphergram.timestamp)
+        )
+        node_exists, = self._cursor.fetchone()
+        return True if node_exists else False
+
     def add_ciphergram(self, ciphergram):
+        if self.check_ciphergram_exists(ciphergram):
+            raise orm.CiphergramAlreadyExistsError
         self._cursor.execute(
             "INSERT INTO `Ciphergrams` VALUES (?, ?)",
             (ciphergram.content, ciphergram.timestamp)
@@ -241,7 +254,8 @@ class Storage:
         );
         CREATE TABLE `Ciphergrams` (
             `content`	TEXT NOT NULL,
-            `timestamp`	INTEGER NOT NULL
+            `timestamp`	INTEGER NOT NULL,
+            PRIMARY KEY(content,timestamp)
         );
         CREATE TABLE `Nodes` (
             `node_id`	TEXT NOT NULL,

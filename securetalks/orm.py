@@ -7,6 +7,9 @@ class IPAddressAlreadyExistsError(ValueError):
 class IPAddressNotFoundError(ValueError):
     """An error occurring when ip address doesn't exists"""
 
+class CiphergramAlreadyExistsError(ValueError):
+    """An error occurring when ciphergram already exists"""
+
 class NodeAlreadyExistsError(ValueError):
     """An error occurring when node already exists"""
 
