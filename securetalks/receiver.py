@@ -83,7 +83,7 @@ class Receiver:
         except crypto.MessageCryptoError:
             return
         else:
-            if abs(ciphergram.timestamp - time.time()) < self.ttl:
+            if abs(ciphergram.timestamp - time.time()) > self.ttl:
                 return  # message is too old
             self._store_as_message(node_id, msg_text, ciphergram.timestamp)
             if not offline:
@@ -93,7 +93,7 @@ class Receiver:
         try:
             crypto_message = json.loads(flat_ciphergram)
             del crypto_message["type"]
-            crypto_message = self.mcrypto.EncryptedMessage(**crypto_message)
+            crypto_message = crypto.EncryptedMessage(**crypto_message)
         except Exception as exc:
             raise MessageParsingError from exc
         return crypto_message
