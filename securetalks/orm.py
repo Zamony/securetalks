@@ -21,6 +21,7 @@ class Message:
     node_id: str
     text: str = field(compare=False)
     to_me: bool = field(compare=False)
+    sender_timestamp: int = field(compare=False)
     timestamp: int = field(default_factory=lambda: int(time.time()))
     
 @dataclass(order=True)

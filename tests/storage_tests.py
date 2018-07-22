@@ -107,18 +107,37 @@ class TestMessages(unittest.TestCase):
         self._conn.close()
         pathlib.Path(self._db_name).unlink()
 
+    def test_check_message_exists(self):
+        msg_ok = orm.Message(
+            "c", "message2 c from me",
+            to_me=False, sender_timestamp=5000
+        )
+        msg_ok_result = self.messages.check_message_exists(msg_ok)
+        msg_fail = orm.Message(
+            "c", "message2 c from me",
+            to_me=False, sender_timestamp=4000
+        )
+        msg_fail_result = self.messages.check_message_exists(msg_fail)
+
+        self.assertTrue(msg_ok_result)
+        self.assertFalse(msg_fail_result)
+
     def test_add_message(self):
-        message = orm.Message("receiver", "message to a", False, 1000)
+        message = orm.Message(
+            "receiver", "message to a",
+            to_me=False, sender_timestamp=800, timestamp=1000
+        )
         self.messages.add_message(message)
         self._cursor.execute(
             "SELECT * FROM Messages WHERE node_id=?",
             (message.node_id, )
         )
 
-        node_id, text, to_me, timestamp = self._cursor.fetchone()
+        node_id, text, to_me, sender_timestamp, timestamp = self._cursor.fetchone()
         self.assertEqual(node_id, message.node_id)
         self.assertEqual(text, message.text)
         self.assertFalse(to_me)
+        self.assertEqual(sender_timestamp, message.sender_timestamp)
         self.assertEqual(timestamp, message.timestamp)
 
     def test_get_messages_limit_none_offset_none(self):

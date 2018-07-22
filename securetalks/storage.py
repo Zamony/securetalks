@@ -99,13 +99,32 @@ class Messages:
         self._conn = conn
         self._cursor = cursor
 
-    def add_message(self, message):
+    def check_message_exists(self, message):
         self._cursor.execute(
-            "INSERT INTO `Messages` VALUES (?, ?, ?, ?)",
+            """
+            SELECT EXISTS(SELECT 1 FROM `Messages`
+            WHERE node_id=? AND text=? AND to_me=? AND sender_timestamp=?
+            LIMIT 1)
+            """,
             (
                 message.node_id,
                 message.text,
-                1 if message.to_me else 0, message.timestamp
+                1 if message.to_me else 0,
+                message.sender_timestamp
+            )
+        )
+        message_exists, = self._cursor.fetchone()
+        return True if message_exists else False
+
+    def add_message(self, message):
+        self._cursor.execute(
+            "INSERT INTO `Messages` VALUES (?, ?, ?, ?, ?)",
+            (
+                message.node_id,
+                message.text,
+                1 if message.to_me else 0,
+                message.sender_timestamp,
+                message.timestamp
             )
         )
         self._conn.commit()
@@ -139,8 +158,8 @@ class Messages:
             raise sqlite3.Error
 
         return [
-            orm.Message(nid, txt, True if to_me else False, tm)
-            for nid, txt, to_me, tm in self._cursor.fetchall()
+            orm.Message(nid, txt, True if to_me else False, stm, tm)
+            for nid, txt, to_me, stm, tm in self._cursor.fetchall()
         ]
 
     def delete_messages(self, node):
@@ -268,6 +287,7 @@ class Storage:
             `node_id`	TEXT NOT NULL,
             `text`	TEXT NOT NULL,
             `to_me`	INTEGER NOT NULL DEFAULT 0,
+            `sender_timestamp`	INTEGER NOT NULL,
             `timestamp`	INTEGER NOT NULL
         );
     """
