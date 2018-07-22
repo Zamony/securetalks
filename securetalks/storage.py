@@ -117,6 +117,8 @@ class Messages:
         return True if message_exists else False
 
     def add_message(self, message):
+        if self.check_message_exists(message):
+            raise orm.MessageAlreadyExistsError
         self._cursor.execute(
             "INSERT INTO `Messages` VALUES (?, ?, ?, ?, ?)",
             (

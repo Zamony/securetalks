@@ -85,7 +85,7 @@ class Receiver:
         else:
             if abs(ciphergram.timestamp - time.time()) < self.ttl:
                 return  # message is too old
-            self._store_as_message(node_id, msg_text)
+            self._store_as_message(node_id, msg_text, ciphergram.timestamp)
             if not offline:
                 self.sender.broadcast_from(message, address)
 
@@ -105,6 +105,10 @@ class Receiver:
         except orm.CiphergramAlreadyExistsError:
             pass
 
-    def _store_as_message(self, node_id, msg_text):
-        message = orm.Message(node_id, msg_text, to_me=True)
-        self.storage.messages.add_message(message)
+    def _store_as_message(self, node_id, msg_text, timestamp):
+        message = orm.Message(
+            node_id, msg_text,
+            to_me=True, sender_timestamp=timestamp
+        )
+        if not self.storage.messages.check_message_exists(message):
+            self.storage.messages.add_message(message)
