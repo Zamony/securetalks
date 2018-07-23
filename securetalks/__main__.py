@@ -41,8 +41,6 @@ def main():
     with storage.Storage(db_path, ttl_two_days) as storage_obj:
         bootstrap(storage_obj, bootstrap_list)
         
-        presentor_obj = presentor.Presentor(db_path, ttl_two_days)
-        gui_obj = gui.WebeventsGUI(presentor_obj)
         keys = crypto.KeysProvider(app_dir)
         mcrypto = crypto.MessageCrypto(keys)
 
@@ -50,18 +48,22 @@ def main():
         receiver_queue = multiprocessing.Queue()
 
         sender_obj = sender.Sender(storage_obj, mcrypto, sender_queue)
+        presentor_obj = presentor.Presentor(
+            sender_obj, db_path, ttl_two_days
+        )
         receiver_obj = receiver.Receiver(
             presentor_obj, sender_obj, storage_obj,
             mcrypto, receiver_queue, listening_address
         )
-
+        
+        gui_obj = gui.WebeventsGUI(presentor_obj)
         gui_obj.add_termination_callback(
             lambda: receiver_obj.terminate()
         )
         gui_obj.add_termination_callback(
             lambda: sender_obj.terminate()
         )
-
+        sender_obj.request_offline_data()
         receiver_obj.run()
 
     
