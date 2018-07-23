@@ -31,6 +31,9 @@ class WebeventsGUI:
     def terminate(self):
         self.events.terminate()
 
+    def add_termination_callback(self, callback):
+        self.events.add_termination_callback(callback)
+
     def _get_dialogs(self, data):
         self.events.fire_event(
             "get_dialogs_result", self.presentor_obj.get_dialogs()
@@ -53,7 +56,3 @@ class WebeventsGUI:
 
     def _make_dialog_read(self, uid):
         self.presentor_obj.make_dialog_read(uid)
-
-
-
-

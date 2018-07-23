@@ -18,10 +18,10 @@ class TestMessageCrypto(unittest.TestCase):
             pathlib.Path.cwd() / "tests" / "receiver_keys"
         )
         self.sender_mcrypto = crypto.MessageCrypto(
-            self.sender_keys, 60*60
+            self.sender_keys
         )
         self.recver_mcrypto = crypto.MessageCrypto(
-            self.recver_keys, 60*60
+            self.recver_keys
         )
 
     def test_can_decrypt_message(self):

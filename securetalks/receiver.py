@@ -21,6 +21,8 @@ class Receiver:
     def run(self):
         while True:
             address, message_bytes = self.queue.get()
+            if address is None and message_bytes is None:
+                break
             try:
                 message_json = message_bytes.decode("utf-8")
                 message = json.loads(message_json)
@@ -29,6 +31,9 @@ class Receiver:
                 pass  # message parsing error
             else:
                 self._receive(address, message)
+
+    def terminate(self):
+        self.queue.put([None, None])
 
     def _receive(self, address, message):
         if message["type"] == "ciphergram":

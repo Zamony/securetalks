@@ -33,9 +33,7 @@ class RSAKeysNotFoundError(IOError):
 
 
 class KeysProvider:
-    def __init__(self, data_dir_name=".securetalks"):
-        data_dir = pathlib.Path.home() / data_dir_name
-        data_dir.mkdir(exist_ok=True)
+    def __init__(self, data_dir):
         self._pub_file = data_dir / "pub.pem"
         self._prv_file = data_dir / "prv.pem"
         self._pub_key = self._prv_key = self._pub_key_str = None
@@ -135,9 +133,8 @@ class MessageVerificationError(MessageCryptoError):
 
 
 class MessageCrypto:
-    def __init__(self, keys_provider, timespan_allowed):
+    def __init__(self, keys_provider):
         self.keys = keys_provider
-        self.timespan_allowed = timespan_allowed
 
     def get_ciphergram(self, user_key, text):
         try:
