@@ -49,13 +49,13 @@ def main():
 
         sender_obj = sender.Sender(storage_obj, mcrypto, sender_queue)
         presentor_obj = presentor.Presentor(
-            sender_obj, db_path, ttl_two_days
+            sender_obj, keys, db_path, ttl_two_days
         )
         receiver_obj = receiver.Receiver(
             presentor_obj, sender_obj, storage_obj,
             mcrypto, receiver_queue, listening_address
         )
-        
+
         gui_obj = gui.WebeventsGUI(presentor_obj)
         gui_obj.add_termination_callback(
             lambda: receiver_obj.terminate()

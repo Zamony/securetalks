@@ -23,6 +23,9 @@ class WebeventsGUI:
         self.events.add_event_listener(
             "make_dialog_read", self._make_dialog_read
         )
+        self.events.add_event_listener(
+            "get_my_id", self._get_my_id
+        )
         webbrowser.open_new_tab("http://{}:{}".format(*address))
 
     def push_message(self, message):
@@ -56,3 +59,8 @@ class WebeventsGUI:
 
     def _make_dialog_read(self, uid):
         self.presentor_obj.make_dialog_read(uid)
+
+    def _get_my_id(self, data):
+        self.events.fire_event(
+            "get_my_id_result", self.presentor_obj.get_my_id()
+        )

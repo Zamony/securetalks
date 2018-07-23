@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Add dialogs</title>
+    <title>My ID</title>
     <link rel="stylesheet" href="/static/bootstrap.min.css">
     <link href="/static/open-iconic-bootstrap.min.css" rel="stylesheet">
     <style>
@@ -45,10 +45,10 @@
             <div class="col-md-3">
                 <ul class="nav flex-column">
                     <li class="nav-item">
-                        <a class="nav-link" href="/pages/my_id.html">My ID</a>
+                        <a class="nav-link active" href="#">My ID</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" href="#">Add Dialog</a>
+                        <a class="nav-link" href="/pages/add_dialog.html">Add Dialog</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/pages/delete_dialog.html">Delete Dialog</a>
@@ -56,16 +56,9 @@
                 </ul>
             </div>
             <div class="col-md-9 border-left p-3">
-                    <div class="form-group">
-                        <label for="user_public_key">User ID (public key)</label>
-                        <textarea class="form-control" id="user_public_key" rows="3"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="user_alias">Alias for user ID</label>
-                        <input type="text" class="form-control" id="user_alias" placeholder="For example: Cousin John">
-                        <small class="form-text text-muted">Not required, but it's needed for the matters of convenience</small>
-                    </div>
-                    <button class="btn btn-primary">Add dialog with the user</button>
+                <h3>Your ID, feel free to share it with your friends:</h3>
+                <p id="my-id" style="word-wrap: break-word;">
+                </p>
             </div>
 
         </div>
@@ -76,21 +69,11 @@
     <script src="/static/autosize.min.js "></script>
     <script src="/webevents.js"></script>
     <script>
-        $(document).on('click', "button", function (e) {
-            var uid = $("#user_public_key").val();
-            var alias = $("#user_alias").val();
-            if (uid == "") return;
-            if (alias == "")
-                webevents.fireEvent("add_dialog", uid);
-            else
-                webevents.fireEvent("add_dialog", [uid, alias]);
-            
-            $("#user_alias").val("");
-            $("#user_public_key").val("");
+        webevents.addEventListener("get_my_id_result", function(node_id){
+            $("#my-id").html(node_id)
         });
-
         $(document).ready(function () {
-            autosize($('textarea'));
+            webevents.fireEvent("get_my_id", {});
         });
     </script>
 </body>

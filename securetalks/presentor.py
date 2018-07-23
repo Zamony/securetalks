@@ -2,8 +2,10 @@ from . import orm
 from . import storage
 
 class Presentor:
-    def __init__(self, sender, db_path, ttl):
+    def __init__(self, sender, keys, db_path, ttl):
         self.sender = sender
+        self.keys = keys
+
         self.db_path = db_path
         self.ttl = ttl
 
@@ -65,5 +67,8 @@ class Presentor:
                 )
             except orm.NodeNotFoundError:
                 pass
+
+    def get_my_id(self):
+        return self.keys.pub_key_str
 
     

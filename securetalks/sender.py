@@ -22,7 +22,7 @@ class Sender:
 
     def request_offline_data(self):
         self.offline_requested = {
-            address for address in self.storage.ipaddresses.listall()
+            address for address in self.storage.ipaddresses.list_all()
         }
         self.broadcast(
             json.dumps(dict(type="request_offline_data"))
@@ -34,11 +34,11 @@ class Sender:
         )
 
     def broadcast(self, message, user_key=None):
-        addresses = self.storage.ipaddresses.listall()
+        addresses = self.storage.ipaddresses.list_all()
         self.queue.put((addresses, message, user_key))
 
     def broadcast_from(self, message, ip_address):
-        ip_addresses = self.storage.ipaddresses.listall()
+        ip_addresses = self.storage.ipaddresses.list_all()
         ip_addresses.remove(ip_address)
         self.queue.put((ip_addresses, message, None))
 
