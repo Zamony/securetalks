@@ -32,6 +32,7 @@ def bootstrap(storage, bootstrap_list):
 
 def main():
     ttl_two_days = 60 * 60 * 24 * 2
+    listening_address = ("0.0.0.0", 8089)
     app_dir = pathlib.Path.home() / ".securetalks"
     app_dir.mkdir(exist_ok=True)
     db_path = app_dir / "db.sqlite3"
@@ -50,7 +51,8 @@ def main():
 
         sender_obj = sender.Sender(storage_obj, mcrypto, sender_queue)
         receiver_obj = receiver.Receiver(
-            presentor_obj, sender_obj, storage_obj, mcrypto, receiver_queue
+            presentor_obj, sender_obj, storage_obj,
+            mcrypto, receiver_queue, listening_address
         )
 
         gui_obj.add_termination_callback(

@@ -1,8 +1,11 @@
 import time
 import json
+import threading
+import multiprocessing
 
 from . import orm
 from . import crypto
+from . import snakesockets
 
 
 class MessageParsingError(ValueError):
@@ -10,13 +13,20 @@ class MessageParsingError(ValueError):
 
 
 class Receiver:
-    def __init__(self, presentor, sender, storage, mcrypto, queue):
+    def __init__(self, presentor, sender, storage,
+                 mcrypto, queue, listening_address):
         self.queue = queue
         self.sender = sender
         self.storage = storage
         self.mcrypto = mcrypto
         self.presentor = presentor
         self.ttl = 60*60*24*2  # two days
+        
+        self.llreceiver = LowLevelReceiver(queue)
+        self.llreceiver_proc = multiprocessing.Process(
+            target=self.llreceiver.run
+        )
+        self.llreceiver_proc.start()
 
     def run(self):
         while True:
@@ -33,7 +43,9 @@ class Receiver:
                 self._receive(address, message)
 
     def terminate(self):
-        self.queue.put([None, None])
+        self.llreceiver_proc.terminate()
+        self.llreceiver_proc.join()
+        self.queue.put([None, None]) # stop yourself
 
     def _receive(self, address, message):
         if message["type"] == "ciphergram":
@@ -117,3 +129,25 @@ class Receiver:
         )
         if not self.storage.messages.check_message_exists(message):
             self.storage.messages.add_message(message)
+
+
+class LowLevelReceiver:
+    def __init__(self, queue):
+        self.queue = queue
+
+    def _worker(self, client_socket):
+        message = client_socket.recv()
+        self.queue.put(message)
+        client_socket.close()
+
+    def run(self):
+        server_socket = snakesockets.TCP(reuseaddr=True)
+        server_socket.bind(("0.0.0.0", 9000))
+        server_socket.listen()
+
+        while True:
+            client_socket, _ = server_socket.accept()
+            client_thread = threading.Thread(
+                target=self._worker, args=(client_socket,)
+            )
+            client_thread.start()
