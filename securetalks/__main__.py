@@ -41,7 +41,7 @@ def main():
     with storage.Storage(db_path, ttl_two_days) as storage_obj:
         bootstrap(storage_obj, bootstrap_list)
         
-        presentor_obj = presentor.Presentor(storage_obj)
+        presentor_obj = presentor.Presentor(db_path, ttl_two_days)
         gui_obj = gui.WebeventsGUI(presentor_obj)
         keys = crypto.KeysProvider(app_dir)
         mcrypto = crypto.MessageCrypto(keys)
