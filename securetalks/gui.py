@@ -4,9 +4,9 @@ import webbrowser
 import webevents
 
 class WebeventsGUI:
-    def __init__(self, presentor_obj):
+    def __init__(self, presentor_obj, gui_port):
         self.presentor_obj = presentor_obj
-        address = ("localhost", 8080)
+        address = ("localhost", gui_port)
         self.events = webevents.run(address, "web")
         self.events.add_event_listener(
             "get_dialogs", self._get_dialogs
