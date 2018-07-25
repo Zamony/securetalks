@@ -62,7 +62,7 @@ class LowLevelSender:
         for ip_address in ip_addresses:
             client_socket = snakesockets.TCP()
             client_socket.connect((ip_address.address, ip_address.port))
-            client_socket.send(message)
+            client_socket.send(message.encode("utf-8"))
 
     def run(self):
         while True:
