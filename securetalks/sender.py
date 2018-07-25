@@ -74,9 +74,12 @@ class LowLevelSender:
 
     def _send_message(self, ip_addresses, message):
         for ip_address in ip_addresses:
-            client_socket = snakesockets.TCP()
-            client_socket.connect((ip_address.address, ip_address.port))
-            client_socket.send(message.encode("utf-8"))
+            try:
+                client_socket = snakesockets.TCP()
+                client_socket.connect((ip_address.address, ip_address.port))
+                client_socket.send(message.encode("utf-8"))
+            except Exception:
+                pass
             logger.info(
                 f"Sending message to {ip_address} with content {message}"
             )
