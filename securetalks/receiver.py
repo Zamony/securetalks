@@ -22,7 +22,7 @@ class Receiver:
         self.presentor = presentor
         self.ttl = 60*60*24*2  # two days
         
-        self.llreceiver = LowLevelReceiver(queue)
+        self.llreceiver = LowLevelReceiver(queue, listening_address)
         self.llreceiver_proc = multiprocessing.Process(
             target=self.llreceiver.run
         )
@@ -132,8 +132,9 @@ class Receiver:
 
 
 class LowLevelReceiver:
-    def __init__(self, queue):
+    def __init__(self, queue, listening_address):
         self.queue = queue
+        self.listening_address = listening_address
 
     def _worker(self, client_socket):
         message = client_socket.recv()
@@ -142,7 +143,7 @@ class LowLevelReceiver:
 
     def run(self):
         server_socket = snakesockets.TCP(reuseaddr=True)
-        server_socket.bind(("0.0.0.0", 9000))
+        server_socket.bind(self.listening_address)
         server_socket.listen()
 
         while True:
