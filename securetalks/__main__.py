@@ -57,7 +57,9 @@ def main():
         sender_queue = multiprocessing.Queue()
         receiver_queue = multiprocessing.Queue()
 
-        sender_obj = sender.Sender(storage_obj, mcrypto, sender_queue)
+        sender_obj = sender.Sender(
+            mcrypto, db_path, ttl_two_days, sender_queue
+        )
         presentor_obj = presentor.Presentor(
             sender_obj, keys, db_path, ttl_two_days
         )

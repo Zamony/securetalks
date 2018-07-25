@@ -2,14 +2,16 @@ import json
 import dataclasses
 import multiprocessing
 
+from . import storage
 from . import crypto
 from . import snakesockets
 
 
 class Sender:
-    def __init__(self, storage, mcrypto, queue):
+    def __init__(self, mcrypto, db_path, ttl, queue):
         self.queue = queue
-        self.storage = storage
+        self.db_path = db_path
+        self.ttl = ttl
         self.offline_requested = None
         self.llsender = LowLevelSender(self.queue, mcrypto)
         self.llsender_proc = multiprocessing.Process(
@@ -21,9 +23,11 @@ class Sender:
         self.broadcast(message, user_key)
 
     def request_offline_data(self):
-        self.offline_requested = {
-            address for address in self.storage.ipaddresses.list_all()
-        }
+        with storage.Storage(self.db_path, self.ttl) as storage_obj:
+            self.offline_requested = {
+                address for address in storage_obj.ipaddresses.list_all()
+            }
+        
         self.broadcast(
             json.dumps(dict(type="request_offline_data"))
         )
@@ -34,11 +38,13 @@ class Sender:
         )
 
     def broadcast(self, message, user_key=None):
-        addresses = self.storage.ipaddresses.list_all()
+        with storage.Storage(self.db_path, self.ttl) as storage_obj:
+            addresses = storage_obj.ipaddresses.list_all()
         self.queue.put((addresses, message, user_key))
 
     def broadcast_from(self, message, ip_address):
-        ip_addresses = self.storage.ipaddresses.list_all()
+        with storage.Storage(self.db_path, self.ttl) as storage_obj:
+            ip_addresses = storage_obj.ipaddresses.list_all()
         ip_addresses.remove(ip_address)
         self.queue.put((ip_addresses, message, None))
 
@@ -62,15 +68,19 @@ class LowLevelSender:
         while True:
             addresses, message, node_id = self.queue.get()
             if node_id is not None:
-                ciphergram = self.mcrypto.get_ciphergram(node_id, message)
-                self._send_message(
-                    addresses,
-                    json.dumps(
-                        dict(
-                            type="ciphergram",
-                            **dataclasses.asdict(ciphergram)
+                try:
+                    ciphergram = self.mcrypto.get_ciphergram(node_id, message)
+                except crypto.MessageCryptoInvalidRecipientKey:
+                    pass
+                else:
+                    self._send_message(
+                        addresses,
+                        json.dumps(
+                            dict(
+                                type="ciphergram",
+                                **dataclasses.asdict(ciphergram)
+                            )
                         )
                     )
-                )
             else:
                 self._send_message(addresses, message)
