@@ -54,8 +54,10 @@ class Presentor:
 
     def delete_dialog(self, node_id):
         with storage.Storage(self.db_path, self.ttl) as storage_obj:
+            node = orm.Node(node_id)
             try:
-                storage_obj.nodes.delete_node(orm.Node(node_id))
+                storage_obj.nodes.delete_node(node)
+                storage_obj.messages.delete_messages(node)
             except orm.NodeNotFoundError:
                 pass
 

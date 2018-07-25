@@ -47,12 +47,10 @@ class WebeventsGUI:
         self.presentor_obj.send_message(uid, message)
 
     def _add_dialog(self, data):
-        try:
-            uid, alias = data
-        except ValueError:
-            self.presentor_obj.add_dialog(uid)
+        if len(data) == 1:
+            self.presentor_obj.add_dialog(data)
         else:
-            self.presentor_obj.add_dialog(uid, alias)
+            self.presentor_obj.add_dialog(*data)
 
     def _delete_dialog(self, uid):
         self.presentor_obj.delete_dialog(uid)
