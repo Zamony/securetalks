@@ -8,10 +8,11 @@ from . import snakesockets
 
 
 class Sender:
-    def __init__(self, mcrypto, db_path, ttl, queue):
+    def __init__(self, mcrypto, db_path, ttl, my_port, queue):
         self.queue = queue
         self.db_path = db_path
         self.ttl = ttl
+        self.my_port = my_port
         self.offline_requested = None
         self.llsender = LowLevelSender(self.queue, mcrypto)
         self.llsender_proc = multiprocessing.Process(
@@ -29,7 +30,12 @@ class Sender:
             ]
         
         self.broadcast(
-            json.dumps(dict(type="request_offline_data"))
+            json.dumps(
+                dict(
+                    type="request_offline_data",
+                    server_port=self.my_port
+                )
+            )
         )
 
     def send_to(self, message, ip_address):

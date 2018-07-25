@@ -61,6 +61,11 @@ class Receiver:
             pass  # message parsing error
 
     def _handle_request_offline_message(self, address, message):
+        try:
+            address.port = int(message["server_port"])
+        except Exception:
+            return
+        
         response = dict(
             type="response_offline_data",
             ciphergrams=[]
@@ -138,7 +143,7 @@ class LowLevelReceiver:
 
     def _worker(self, client_socket, client_addr):
         message = client_socket.recv()
-        self.queue.put((client_addr, message))
+        self.queue.put((orm.IPAddress(*client_addr), message))
         client_socket.close()
 
     def run(self):

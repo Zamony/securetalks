@@ -58,7 +58,8 @@ def main():
         receiver_queue = multiprocessing.Queue()
 
         sender_obj = sender.Sender(
-            mcrypto, db_path, ttl_two_days, sender_queue
+            mcrypto, db_path, ttl_two_days,
+            config["server_port"], sender_queue
         )
         presentor_obj = presentor.Presentor(
             sender_obj, keys, db_path, ttl_two_days
