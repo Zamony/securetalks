@@ -136,9 +136,9 @@ class LowLevelReceiver:
         self.queue = queue
         self.listening_address = listening_address
 
-    def _worker(self, client_socket):
+    def _worker(self, client_socket, client_addr):
         message = client_socket.recv()
-        self.queue.put(message)
+        self.queue.put(client_addr, message)
         client_socket.close()
 
     def run(self):
@@ -147,8 +147,8 @@ class LowLevelReceiver:
         server_socket.listen()
 
         while True:
-            client_socket, _ = server_socket.accept()
+            client_socket, client_addr = server_socket.accept()
             client_thread = threading.Thread(
-                target=self._worker, args=(client_socket,)
+                target=self._worker, args=(client_socket, client_addr)
             )
             client_thread.start()
