@@ -190,11 +190,11 @@
       var author = message.to_me ? message.talking_to : "Me";
       var posted_date = new Date(message.timestamp * 1000);
       var posted_str = `${posted_date.getDate()}.${posted_date.getMonth()}.${posted_date.getFullYear()} ${posted_date.getHours()}:${posted_date.getMinutes()}`;
-
+      
       return `
         <div class="message message-${class_suff} p-2 m-2">
         <p class="mb-1">
-          <span class="font-weight-bold">${author}: </span>
+          <span class="font-weight-bold">${author.slice(0, 42)}: </span>
           <small class="text-muted"> (at ${posted_str})</small>
         </p>
         ${message.text}
