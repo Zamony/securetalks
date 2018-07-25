@@ -24,9 +24,9 @@ class Sender:
 
     def request_offline_data(self):
         with storage.Storage(self.db_path, self.ttl) as storage_obj:
-            self.offline_requested = {
+            self.offline_requested = [
                 address for address in storage_obj.ipaddresses.list_all()
-            }
+            ]
         
         self.broadcast(
             json.dumps(dict(type="request_offline_data"))

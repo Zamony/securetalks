@@ -78,13 +78,13 @@ class Receiver:
         try:
             self.sender.offline_requested.remove(address)
             message["ciphergrams"]
-        except KeyError:
+        except (ValueError, KeyError):
             return  # flooding
-
-        for cph in message["ciphergrams"]:
-            self._handle_ciphergram_message(
-                address, cph, offline=True
-            )
+        else:
+            for cph in message["ciphergrams"]:
+                self._handle_ciphergram_message(
+                    address, cph, offline=True
+                )
 
     def _handle_ciphergram_message(self, address, message, offline=False):
         try:
