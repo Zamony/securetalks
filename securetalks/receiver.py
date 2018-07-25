@@ -123,7 +123,7 @@ class Receiver:
     def _store_as_ciphergram(self, message, timestamp):
         ciphergram = orm.Ciphergram(message, timestamp)
         try:
-            self.storage.add_ciphergram(ciphergram)
+            self.storage.ciphergrams.add_ciphergram(ciphergram)
         except orm.CiphergramAlreadyExistsError:
             pass
 
