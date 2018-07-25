@@ -55,25 +55,7 @@
                     </li>
                 </ul>
             </div>
-            <div class="col-md-9 border-left">
-                    <div>
-                        <div>
-                            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0RtJMLgIMftX+JNF+xAF 4hINn0A1NSDpxCQZboEu/s5tTk0oV0wgFT0aPAEAjf6td3DxdIHLXO4XWnpRkPNx
-                            TGUZ8z2Cu/p7Xmw0AFuGqcDF3/JB43ekpfvLxHhL5E/Zo5CNMwC4LmDlcQtgHC0r w/Si8zWvxE5XTTio0upGjcGjWVGCTUwO4sTcuYKoVN0CloDNBYCgf/xbX5TtEf+A
-                            pb6lhAx4Iq4y7S64rtDWyFmhtQ1LQGvv4zy26B83Nj4LIKhgwZLacTeznBV8tnGm XCJjC0YuHzQtEFPnu1pLKm0qStaQ8yUaUZAKN0uJVLxVxna0JA+JBMrn2qYE0+0Y
-                            MQIDAQAB
-                        </div>
-                        <button class="btn btn-primary">Delete</button>
-                        <hr>
-                    </div>
-                    <div>
-                        <div>
-                            BAQADIQMY0+0EYq2nrMBJ+AJ0anxVxLVJu0NKAZUaUy8QatSq0mKLp1unPFEtQzHuY0CjJCX mGnt8VBnzeTcaLZwghKIL4jN38B62yz4vvGQL1QthmFyWDtr46S7y4qI4xAhl6bpA+fEtT5Xbx fgCYBNDolC0NVoKYucTs4OwUTCGVWjGcjGpu0oiTTX5ExvWz8iS0CHgtQclDmL4CwMNC5o5LhHxL 3FDcqGuFA0wmX7puC2z8ZUGTxNPkRpnWX4OXLHIdxD3dt6fjAEAPa0TFgw0Vo0kTt5suEobZQCxpDSN1A 0nNFAx+FNJ+XtfMIgLMJtR0AEQACKgCBIIMA8QACOAAFEQAB0w9GikhqkgBNAjIBIIM
-                        </div>
-                        <button class="btn btn-primary">Delete</button>
-                        <hr>
-                    </div>
-
+            <div class="col-md-9 border-left" id="active-dialogs">
             </div>
 
         </div>
@@ -84,14 +66,30 @@
     <script src="/static/autosize.min.js "></script>
     <script src="/webevents.js"></script>
     <script>
+        function display_dialogs(dialogs){
+            for (var i = 0; i < dialogs.length; i += 1) {
+                dialog_template = `
+                <div>
+                    <div style="word-wrap: break-word;">
+                    ${dialogs[i].talking_to}
+                    </div>
+                    <button class="btn btn-primary">Delete</button>
+                    <hr>
+                </div>
+                `;
+                $("#active-dialogs").append(dialog_template);
+            }
+        }
+
         $(document).on('click', "button", function (e) {
             var uid = $(e.target).siblings("div").html();
-            webevents.fireEvent("delete_dialog", uid);
+            webevents.fireEvent("delete_dialog", $.trim(uid));
             $(e.target).parent().remove();
         });
 
         $(document).ready(function () {
-            autosize($('textarea'));
+            webevents.addEventListener("get_dialogs_result", display_dialogs);
+            webevents.fireEvent("get_dialogs", []);
         });
     </script>
 </body>
