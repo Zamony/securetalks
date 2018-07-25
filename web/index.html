@@ -159,6 +159,14 @@
       $("main .row").append(messages_template);
     }
     function add_dialog_to_sidebar_html(dialog) {
+      var unread_badge = ""
+      if (dialog.unread_count > 0)
+        unread_badge = dialog.unread_count
+
+      var last_message = "<span class='font-italic'>No messages in the dialog</span>"
+      if (dialog.messages.length > 0)
+        last_message = dialog.messages[dialog.messages.length - 1].text
+      
       var dialogs_template = `
              <a href="#" id="${dialog.talking_to}" class="list-group-item list-group-item-action flex-column align-items-start">
               <p class="font-weight-bold  text-truncate mb-0">
@@ -167,15 +175,15 @@
               </p>
               <div class="d-flex flex-row justify-content-end">
                 <div class="small text-truncate mb-0 px-2  w-100">
-                ${dialog.messages[dialog.messages.length - 1].text}
+                ${last_message}
                 </div>
-                <div class="badge badge-light badge-pill">${dialog.unread_count}</div>
+                <div class="badge badge-light badge-pill">${unread_badge}</div>
               </div>
             </a>`;
       $("#dialogs .list-group").prepend(dialogs_template);
     }
     function add_message_to_dialog_html(message) {
-      $(`#conv-${message.talking_to} .messages`).append(render_msg(message));
+      $(`#conv-${message.talking_to} .messages`).prepend(render_msg(message));
     }
     function render_msg(message) {
       var class_suff = message.to_me ? "from" : "me";
@@ -217,6 +225,7 @@
       add_message_to_dialog_html(message);
     }
     function initial_dialog_set(dialogs) {
+      console.log(dialogs)
       for (var i = 0; i < dialogs.length; i += 1) {
         var dialog = dialogs[i];
         add_dialog_to_sidebar_html(dialog);
