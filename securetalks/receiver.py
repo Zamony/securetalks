@@ -138,7 +138,7 @@ class LowLevelReceiver:
 
     def _worker(self, client_socket, client_addr):
         message = client_socket.recv()
-        self.queue.put(client_addr, message)
+        self.queue.put((client_addr, message))
         client_socket.close()
 
     def run(self):
