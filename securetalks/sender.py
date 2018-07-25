@@ -54,8 +54,13 @@ class Sender:
     def broadcast_from(self, message, ip_address):
         with storage.Storage(self.db_path, self.ttl) as storage_obj:
             ip_addresses = storage_obj.ipaddresses.list_all()
-        ip_addresses.remove(ip_address)
-        self.queue.put((ip_addresses, message, None))
+        
+        try:
+            ip_addresses.remove(ip_address)
+        except ValueError:
+            pass
+        else:
+            self.queue.put((ip_addresses, message, None))
 
     def terminate(self):
         self.llsender_proc.terminate()

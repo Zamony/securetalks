@@ -64,14 +64,15 @@ class Receiver:
         else:
             pass  # message parsing error
         
-        if not self.storage.ipaddresses.check_address_exists(address):
-            self.storage.ipaddresses.add_address(address)
 
     def _handle_request_offline_message(self, address, message):
         try:
             address.port = int(message["server_port"])
         except Exception:
             return
+
+        if not self.storage.ipaddresses.check_address_exists(address):
+            self.storage.ipaddresses.add_address(address)
 
         logger.info(
             f"Got request for offline data from {address} with {message}"
