@@ -1,4 +1,5 @@
 import json
+import logging
 import dataclasses
 import multiprocessing
 
@@ -6,6 +7,8 @@ from . import storage
 from . import crypto
 from . import snakesockets
 
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 class Sender:
     def __init__(self, mcrypto, db_path, ttl, my_port, queue):
@@ -69,6 +72,9 @@ class LowLevelSender:
             client_socket = snakesockets.TCP()
             client_socket.connect((ip_address.address, ip_address.port))
             client_socket.send(message.encode("utf-8"))
+            logger.info(
+                f"Sending message to {ip_address} with content {message}"
+            )
 
     def run(self):
         while True:

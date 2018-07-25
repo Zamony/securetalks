@@ -64,13 +64,15 @@ def main():
         presentor_obj = presentor.Presentor(
             sender_obj, keys, db_path, ttl_two_days
         )
+        gui_obj = gui.WebeventsGUI(
+            presentor_obj, config["gui_port"]
+        )
         receiver_obj = receiver.Receiver(
-            presentor_obj, sender_obj, storage_obj,
+            gui_obj, sender_obj, storage_obj,
             mcrypto, receiver_queue,
             (config["server_address"], config["server_port"])
         )
 
-        gui_obj = gui.WebeventsGUI(presentor_obj, config["gui_port"])
         gui_obj.add_termination_callback(
             lambda: receiver_obj.terminate()
         )

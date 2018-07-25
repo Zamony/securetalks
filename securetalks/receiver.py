@@ -1,5 +1,6 @@
 import time
 import json
+import logging
 import threading
 import multiprocessing
 
@@ -7,19 +8,22 @@ from . import orm
 from . import crypto
 from . import snakesockets
 
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
 
 class MessageParsingError(ValueError):
     """Error occurring when message structure is invalid"""
 
 
 class Receiver:
-    def __init__(self, presentor, sender, storage,
+    def __init__(self, gui, sender, storage,
                  mcrypto, queue, listening_address):
-        self.queue = queue
+        self.gui = gui
         self.sender = sender
         self.storage = storage
         self.mcrypto = mcrypto
-        self.presentor = presentor
+        self.queue = queue
         self.ttl = 60*60*24*2  # two days
         
         self.llreceiver = LowLevelReceiver(queue, listening_address)
@@ -59,12 +63,19 @@ class Receiver:
 
         else:
             pass  # message parsing error
+        
+        if not self.storage.ipaddresses.check_address_exists(address):
+            self.storage.ipaddresses.add_address(address)
 
     def _handle_request_offline_message(self, address, message):
         try:
             address.port = int(message["server_port"])
         except Exception:
             return
+
+        logger.info(
+            f"Got request for offline data from {address} with {message}"
+        )
         
         response = dict(
             type="response_offline_data",
@@ -96,17 +107,23 @@ class Receiver:
             message = json.dumps(message)
             ciphergram = self._parse_ciphergram(message)
         except MessageParsingError:
+            logger.info("Got ciphergram message, parsing error")
             return
 
         try:
             node_id, msg_text = self.mcrypto.get_plaintext(ciphergram)
         except crypto.MessageDecryptionError:
+            logger.info("Got ciphergram message, decryption error")
             self._store_as_ciphergram(message, ciphergram.timestamp)
         except crypto.MessageCryptoError:
+            logger.info("Got ciphergram message, crypto error")
             return
         else:
             if abs(ciphergram.timestamp - time.time()) > self.ttl:
+                logger.info("Got ciphergram message, message is too old")
                 return  # message is too old
+
+            logger.info("Got ciphergram message, stored as message")
             self._store_as_message(node_id, msg_text, ciphergram.timestamp)
             if not offline:
                 self.sender.broadcast_from(message, address)
@@ -128,10 +145,13 @@ class Receiver:
             pass
 
     def _store_as_message(self, node_id, msg_text, timestamp):
+        node = orm.Node(node_id)
         message = orm.Message(
             node_id, msg_text,
             to_me=True, sender_timestamp=timestamp
         )
+        if not self.storage.nodes.check_node_exists(node):
+            self.storage.nodes.add_node(node)
         if not self.storage.messages.check_message_exists(message):
             self.storage.messages.add_message(message)
 
@@ -143,6 +163,7 @@ class LowLevelReceiver:
 
     def _worker(self, client_socket, client_addr):
         message = client_socket.recv()
+        logger.info(f"Received message {message}")
         self.queue.put((orm.IPAddress(*client_addr), message))
         client_socket.close()
 
