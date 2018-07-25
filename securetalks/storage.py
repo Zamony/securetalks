@@ -136,7 +136,7 @@ class Messages:
             self._cursor.execute(
                 """
                 SELECT * FROM `Messages` WHERE `node_id`=?
-                ORDER BY `timestamp` DESC LIMIT ? OFFSET ?;
+                ORDER BY `timestamp` LIMIT ? OFFSET ?;
                 """,
                 (node.node_id, limit, offset)
             )
@@ -144,7 +144,7 @@ class Messages:
             self._cursor.execute(
                 """
                 SELECT * FROM `Messages` WHERE `node_id`=?
-                ORDER BY `timestamp` DESC;
+                ORDER BY `timestamp`;
                 """,
                 (node.node_id, )
             )
@@ -152,7 +152,7 @@ class Messages:
             self._cursor.execute(
                 """
                 SELECT * FROM `Messages` WHERE `node_id`=?
-                ORDER BY `timestamp` DESC LIMIT ?;
+                ORDER BY `timestamp` LIMIT ?;
                 """,
                 (node.node_id, limit)
             )

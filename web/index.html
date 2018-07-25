@@ -183,7 +183,7 @@
       $("#dialogs .list-group").prepend(dialogs_template);
     }
     function add_message_to_dialog_html(message) {
-      $(`#conv-${message.talking_to} .messages`).prepend(render_msg(message));
+      $(`#conv-${message.talking_to} .messages`).append(render_msg(message));
     }
     function render_msg(message) {
       var class_suff = message.to_me ? "from" : "me";
