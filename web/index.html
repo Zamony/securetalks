@@ -167,11 +167,13 @@
       if (dialog.messages.length > 0)
         last_message = dialog.messages[dialog.messages.length - 1].text
       
+      var dialog_with = dialog.alias == "" ? dialog.node_id : dialog.alias;
+
       var dialogs_template = `
-             <a href="#" id="${dialog.talking_to}" class="list-group-item list-group-item-action flex-column align-items-start">
+             <a href="#" id="${dialog.node_id}" class="list-group-item list-group-item-action flex-column align-items-start">
               <p class="font-weight-bold  text-truncate mb-0">
                 <span class="oi oi-person small" title="person" aria-hidden="true"></span>
-                ${dialog.talking_to}
+                ${dialog_with}
               </p>
               <div class="d-flex flex-row justify-content-end">
                 <div class="small text-truncate mb-0 px-2  w-100">
@@ -183,11 +185,13 @@
       $("#dialogs .list-group").prepend(dialogs_template);
     }
     function add_message_to_dialog_html(message) {
-      $(`#conv-${message.talking_to} .messages`).append(render_msg(message));
+      $(`#conv-${message.node_id} .messages`).append(render_msg(message));
     }
     function render_msg(message) {
+      console.log(message);
       var class_suff = message.to_me ? "from" : "me";
-      var author = message.to_me ? message.talking_to : "Me";
+      var talking_to = message.alias == "" ? message.node_id : message.alias;
+      var author = message.to_me ? talking_to : "Me";
       var posted_date = new Date(message.timestamp * 1000);
       var posted_str = `${posted_date.getDate()}.${posted_date.getMonth()}.${posted_date.getFullYear()} ${posted_date.getHours()}:${posted_date.getMinutes()}`;
       
@@ -202,15 +206,15 @@
         `;
     }
     function push_message(message) {
-      var sidebar_el = $(`#${message.talking_to}`);
+      var sidebar_el = $(`#${message.node_id}`);
       var dialog = {}
-      dialog.talking_to = message.talking_to;
+      dialog.node_id = message.node_id;
       dialog.messages = new Array(message);
 
       if (sidebar_el.length == 0) {
         add_dialog_to_sidebar_html(dialog);
-        $(`#${message.talking_to}`).find(".badge").html(1);
-        add_conv_to_html(message.talking_to);
+        $(`#${message.node_id}`).find(".badge").html(1);
+        add_conv_to_html(message.node_id);
       } else {
         var was_active = sidebar_el.hasClass("active");
         var count = sidebar_el.find(".badge").html();
@@ -218,9 +222,9 @@
         sidebar_el.remove();
         add_dialog_to_sidebar_html(dialog);
         if (was_active)
-          $(`#${message.talking_to}`).addClass("active");
+          $(`#${message.node_id}`).addClass("active");
         else
-          $(`#${message.talking_to}`).find(".badge").html(new_count);
+          $(`#${message.node_id}`).find(".badge").html(new_count);
       }
       add_message_to_dialog_html(message);
     }
@@ -228,10 +232,10 @@
       for (var i = 0; i < dialogs.length; i += 1) {
         var dialog = dialogs[i];
         add_dialog_to_sidebar_html(dialog);
-        add_conv_to_html(dialog.talking_to);
+        add_conv_to_html(dialog.node_id);
         for (var j = 0; j < dialog.messages.length; j += 1) {
           var message = dialogs[i].messages[j];
-          message.talking_to = dialog.talking_to;
+          message.node_id = dialog.node_id;
           add_message_to_dialog_html(message);
         }
       }
@@ -248,7 +252,7 @@
           "to_me": false,
           "text": msg_text,
           "timestamp": Math.round((new Date()).getTime() / 1000),
-          "talking_to": uid,
+          "node_id": uid,
         };
         push_message(message);
         scroll_messages($(".inputbox").siblings(".messages"));

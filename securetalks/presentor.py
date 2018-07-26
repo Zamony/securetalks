@@ -12,17 +12,13 @@ class Presentor:
     def get_dialogs(self):
         return [
             dict(
-                talking_to=node.node_id,
-                last_updated=node.last_activity,
-                unread_count=node.unread_count,
-                alias=node.alias,
-                messages=[
-                    dict(
-                        talking_to=node.node_id,
-                        timestamp=message.timestamp,
-                        to_me=message.to_me,
-                        text=message.text
-                    ) for message in self.storage.messages.get_messages(node)
+                **dataclasses.asdict(node),
+                messages= [
+                    {
+                        **dataclasses.asdict(node),
+                        **dataclasses.asdict(message)
+                    }
+                    for message in self.storage.messages.get_messages(node)
                 ]
             ) for node in self.storage.nodes.list_all()
         ]

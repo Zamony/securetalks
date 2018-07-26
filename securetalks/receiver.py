@@ -156,14 +156,7 @@ class Receiver:
             self.storage.nodes.add_node(node)
         if not self.storage.messages.check_message_exists(message):
             self.storage.messages.add_message(message)
-            self.gui.push_message(
-                dict(
-                    talking_to=message.node_id,
-                    to_me=message.to_me,
-                    timestamp=message.timestamp,
-                    text=message.text
-                )
-            )
+            self.gui.push_message({**node, **message})
 
 
 class LowLevelReceiver:
