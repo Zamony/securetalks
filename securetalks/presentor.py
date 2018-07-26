@@ -1,3 +1,5 @@
+import dataclasses
+
 from . import orm
 from . import storage
 
@@ -72,5 +74,16 @@ class Presentor:
 
     def get_my_id(self):
         return self.keys.pub_key_str
+
+    def change_node_alias(self, node_id, alias):
+        with storage.Storage(self.db_path, self.ttl) as storage_obj:
+            try:
+                node = storage_obj.nodes.get_node_by_id(node_id)
+            except orm.NodeNotFoundError:
+                pass
+            else:
+                node_new_alias = dataclasses.replace(node, alias=alias)
+                storage_obj.nodes.delete_node(node)
+                storage_obj.nodes.add_node(node_new_alias)
 
     

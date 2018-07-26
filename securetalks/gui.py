@@ -26,6 +26,9 @@ class WebeventsGUI:
         self.events.add_event_listener(
             "get_my_id", self._get_my_id
         )
+        self.events.add_event_listener(
+            "change_node_alias", self._change_node_alias
+        )
         webbrowser.open_new_tab("http://{}:{}".format(*address))
 
     def push_message(self, message):
@@ -62,3 +65,7 @@ class WebeventsGUI:
         self.events.fire_event(
             "get_my_id_result", self.presentor_obj.get_my_id()
         )
+
+    def _change_node_alias(self, data):
+        node_id, alias = data
+        self.presentor_obj.change_node_alias(node_id, alias)

@@ -51,10 +51,10 @@
                         <a class="nav-link" href="/pages/add_dialog.html">Add Dialog</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/pages/manage_aliases.html">Manage aliases</a>
+                        <a class="nav-link active" href="#">Manage aliases</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" href="#">Delete Dialog</a>
+                        <a class="nav-link" href="/pages/delete_dialog.html">Delete Dialog</a>
                     </li>
                 </ul>
             </div>
@@ -76,7 +76,9 @@
                     <div style="word-wrap: break-word;">
                     ${dialogs[i].talking_to}
                     </div>
-                    <button class="btn btn-primary">Delete</button>
+                    <div class="mt-3 mb-1 font-weight-bold">Alias: </div>
+                    <input type="text" class="form-control" value="${dialogs[i].alias}">
+                    <button class="btn btn-primary mt-2">Save this alias</button>
                     <hr>
                 </div>
                 `;
@@ -85,9 +87,9 @@
         }
 
         $(document).on('click', "button", function (e) {
-            var uid = $(e.target).siblings("div").html();
-            webevents.fireEvent("delete_dialog", $.trim(uid));
-            $(e.target).parent().remove();
+            var node_id = $(e.target).siblings("div").html();
+            var alias = $(e.target).siblings("input").val();
+            webevents.fireEvent("change_node_alias", [$.trim(node_id), $.trim(alias)]);
         });
 
         $(document).ready(function () {
