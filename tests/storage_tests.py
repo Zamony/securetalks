@@ -14,7 +14,7 @@ class TestNodes(unittest.TestCase):
         self._db_name = testing_utils.setup_db()
         self._conn = sqlite3.connect(self._db_name)
         self._cursor = self._conn.cursor()
-        self.nodes = storage.Nodes(self._conn, self._cursor)
+        self.nodes = storage.Nodes(self._db_name)
 
     def tearDown(self):
         self._conn.close()
@@ -101,7 +101,7 @@ class TestMessages(unittest.TestCase):
         self._db_name = testing_utils.setup_db()
         self._conn = sqlite3.connect(self._db_name)
         self._cursor = self._conn.cursor()
-        self.messages = storage.Messages(self._conn, self._cursor)
+        self.messages = storage.Messages(self._db_name)
 
     def tearDown(self):
         self._conn.close()
@@ -146,9 +146,9 @@ class TestMessages(unittest.TestCase):
 
         self.assertEqual(len(messages), 3)
         self.assertEqual(messages[0].node_id, node.node_id)
-        self.assertEqual(messages[0].text, "message3 c to me")
-        self.assertTrue(messages[0].to_me)
-        self.assertEqual(messages[0].timestamp, 6000)
+        self.assertEqual(messages[0].text, "message1 c from me")
+        self.assertFalse(messages[0].to_me)
+        self.assertEqual(messages[0].timestamp, 1000)
 
     def test_get_messages_limit_offset(self):
         node = orm.Node("c")
@@ -179,7 +179,7 @@ class TestCiphergrams(unittest.TestCase):
         self._db_name = testing_utils.setup_db()
         self._conn = sqlite3.connect(self._db_name)
         self._cursor = self._conn.cursor()
-        self.ciphergrams = storage.Ciphergrams(self._conn, self._cursor)
+        self.ciphergrams = storage.Ciphergrams(self._db_name)
 
     def tearDown(self):
         self._conn.close()
@@ -222,7 +222,7 @@ class TestIPAddresses(unittest.TestCase):
         self._db_name = testing_utils.setup_db()
         self._conn = sqlite3.connect(self._db_name)
         self._cursor = self._conn.cursor()
-        self.ipaddresses = storage.IPAddresses(self._conn, self._cursor)
+        self.ipaddresses = storage.IPAddresses(self._db_name)
 
     def tearDown(self):
         self._conn.close()

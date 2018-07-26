@@ -3,7 +3,6 @@ import logging
 import dataclasses
 import multiprocessing
 
-from . import storage
 from . import crypto
 from . import snakesockets
 
@@ -11,10 +10,9 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 class Sender:
-    def __init__(self, mcrypto, db_path, ttl, my_port, queue):
+    def __init__(self, mcrypto, storage, my_port, queue):
         self.queue = queue
-        self.db_path = db_path
-        self.ttl = ttl
+        self.storage = storage
         self.my_port = my_port
         self.offline_requested = None
         self.llsender = LowLevelSender(self.queue, mcrypto)
@@ -27,10 +25,9 @@ class Sender:
         self.broadcast(message, user_key)
 
     def request_offline_data(self):
-        with storage.Storage(self.db_path, self.ttl) as storage_obj:
-            self.offline_requested = [
-                address for address in storage_obj.ipaddresses.list_all()
-            ]
+        self.offline_requested = [
+            address for address in self.storage.ipaddresses.list_all()
+        ]
         
         self.broadcast(
             json.dumps(
@@ -47,14 +44,11 @@ class Sender:
         )
 
     def broadcast(self, message, user_key=None):
-        with storage.Storage(self.db_path, self.ttl) as storage_obj:
-            addresses = storage_obj.ipaddresses.list_all()
+        addresses = self.storage.ipaddresses.list_all()
         self.queue.put((addresses, message, user_key))
 
     def broadcast_from(self, message, ip_address):
-        with storage.Storage(self.db_path, self.ttl) as storage_obj:
-            ip_addresses = storage_obj.ipaddresses.list_all()
-        
+        ip_addresses = self.storage.ipaddresses.list_all()
         try:
             ip_addresses.remove(ip_address)
         except ValueError:

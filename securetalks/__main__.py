@@ -33,10 +33,12 @@ def bootstrap(storage, bootstrap_list):
 def read_config(app_dir):
     parser = configparser.ConfigParser()
     parser.read(str(app_dir / "config.txt"))
-    return dict(
-        server_address=parser.get("Server", "address", fallback="0.0.0.0"),
-        server_port=parser.getint("Server", "port", fallback=8001),
-        gui_port=parser.getint("GUI", "port", fallback=8002)
+    return (
+        (
+            parser.get("Server", "address", fallback="0.0.0.0"),
+            parser.getint("Server", "port", fallback=8001)
+        ),
+        parser.getint("GUI", "port", fallback=8002)
     )
             
 
@@ -46,41 +48,38 @@ def main():
     app_dir.mkdir(exist_ok=True)
     db_path = app_dir / "db.sqlite3"
     bootstrap_list = app_dir / "bootstrap.list"
-    config = read_config(app_dir)
+    serv_addr, gui_port = read_config(app_dir)
 
-    with storage.Storage(db_path, ttl_two_days) as storage_obj:
-        bootstrap(storage_obj, bootstrap_list)
-        
-        keys = crypto.KeysProvider(app_dir)
-        mcrypto = crypto.MessageCrypto(keys)
+    storage_obj = storage.Storage(db_path, ttl_two_days)
+    bootstrap(storage_obj, bootstrap_list)
+    keys = crypto.KeysProvider(app_dir)
+    mcrypto = crypto.MessageCrypto(keys)
 
-        sender_queue = multiprocessing.Queue()
-        receiver_queue = multiprocessing.Queue()
+    sender_queue = multiprocessing.Queue()
+    receiver_queue = multiprocessing.Queue()
 
-        sender_obj = sender.Sender(
-            mcrypto, db_path, ttl_two_days,
-            config["server_port"], sender_queue
-        )
-        presentor_obj = presentor.Presentor(
-            sender_obj, keys, db_path, ttl_two_days
-        )
-        gui_obj = gui.WebeventsGUI(
-            presentor_obj, config["gui_port"]
-        )
-        receiver_obj = receiver.Receiver(
-            gui_obj, sender_obj, storage_obj,
-            mcrypto, receiver_queue,
-            (config["server_address"], config["server_port"])
-        )
+    sender_obj = sender.Sender(
+        mcrypto, storage_obj, serv_addr[-1], sender_queue
+    )
+    presentor_obj = presentor.Presentor(
+        sender_obj, keys, storage_obj
+    )
+    gui_obj = gui.WebeventsGUI(
+        presentor_obj, gui_port
+    )
+    receiver_obj = receiver.Receiver(
+        gui_obj, sender_obj, storage_obj,
+        mcrypto, receiver_queue, serv_addr
+    )
 
-        gui_obj.add_termination_callback(
-            lambda: receiver_obj.terminate()
-        )
-        gui_obj.add_termination_callback(
-            lambda: sender_obj.terminate()
-        )
-        sender_obj.request_offline_data()
-        receiver_obj.run()
+    gui_obj.add_termination_callback(
+        lambda: receiver_obj.terminate()
+    )
+    gui_obj.add_termination_callback(
+        lambda: sender_obj.terminate()
+    )
+    sender_obj.request_offline_data()
+    receiver_obj.run()
 
     
 if __name__ == "__main__":
