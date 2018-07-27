@@ -72,7 +72,7 @@ class CertificateProvider:
         ).not_valid_before(
             datetime.datetime.utcnow()
         ).not_valid_after(
-            datetime.datetime.utcnow() + datetime.timedelta(days=36500)
+            datetime.datetime.utcnow() + datetime.timedelta(days=3650)
         ).add_extension(
             x509.SubjectAlternativeName([x509.DNSName(u"localhost")]),
             critical=False,
