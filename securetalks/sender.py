@@ -1,3 +1,4 @@
+import ssl
 import json
 import logging
 import dataclasses
@@ -10,12 +11,12 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 class Sender:
-    def __init__(self, mcrypto, storage, my_port, queue):
+    def __init__(self, mcrypto, certs, storage, my_port, queue):
         self.queue = queue
         self.storage = storage
         self.my_port = my_port
         self.offline_requested = None
-        self.llsender = LowLevelSender(self.queue, mcrypto)
+        self.llsender = LowLevelSender(self.queue, mcrypto, certs)
         self.llsender_proc = multiprocessing.Process(
             target=self.llsender.run
         )
@@ -62,14 +63,18 @@ class Sender:
 
 
 class LowLevelSender:
-    def __init__(self, queue, mcrypto):
+    def __init__(self, queue, mcrypto, certs):
         self.queue = queue
         self.mcrypto = mcrypto
+        self.certs = certs
 
     def _send_message(self, ip_addresses, message):
+        context = ssl.SSLContext()
+        context.verify_mode = ssl.CERT_NONE
         for ip_address in ip_addresses:
             try:
                 client_socket = snakesockets.TCP()
+                client_socket.sock =context.wrap_socket(client_socket.sock)
                 client_socket.connect((ip_address.address, ip_address.port))
                 client_socket.send(message.encode("utf-8"))
             except Exception:

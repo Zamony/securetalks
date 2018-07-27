@@ -2,9 +2,12 @@ import time
 import json
 import logging
 import pathlib
+import datetime
 import dataclasses
 
 import cryptography
+from cryptography import x509
+from cryptography.x509.oid import NameOID
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
@@ -26,6 +29,59 @@ class EncryptedMessage:
     signature: str
     proof: int
     timestamp: int
+
+
+class CertificateProvider:
+    def __init__(self, data_dir):
+        cert_key_file = data_dir / "cert_key.pem"
+        cert_file = data_dir / "cert.pem"
+
+        self.key_file = str(cert_key_file)
+        self.cert_file = str(cert_file)
+
+        if not cert_key_file.exists() or not cert_file.exists():
+            self._make_certificate_key()
+            self._make_certificate()
+
+    def _make_certificate_key(self):
+        self.key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=2048,
+            backend=default_backend()
+        )
+
+        with open(self.key_file, "wb") as key_file:
+            key_file.write(
+                self.key.private_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PrivateFormat.TraditionalOpenSSL,
+                    encryption_algorithm=serialization.NoEncryption()
+                )
+            )
+
+    def _make_certificate(self):
+        subject = issuer = x509.Name([])
+        cert = x509.CertificateBuilder().subject_name(
+            subject
+        ).issuer_name(
+            issuer
+        ).public_key(
+            self.key.public_key()
+        ).serial_number(
+            x509.random_serial_number()
+        ).not_valid_before(
+            datetime.datetime.utcnow()
+        ).not_valid_after(
+            datetime.datetime.utcnow() + datetime.timedelta(days=36500)
+        ).add_extension(
+            x509.SubjectAlternativeName([x509.DNSName(u"localhost")]),
+            critical=False,
+        ).sign(self.key, hashes.SHA256(), default_backend())
+
+        with open(self.cert_file, "wb") as cert_file:
+            cert_file.write(
+                cert.public_bytes(serialization.Encoding.PEM)
+            )
 
 
 class RSAKeysNotFoundError(IOError):

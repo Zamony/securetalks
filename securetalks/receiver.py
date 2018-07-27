@@ -1,3 +1,4 @@
+import ssl
 import time
 import json
 import logging
@@ -19,7 +20,7 @@ class MessageParsingError(ValueError):
 
 class Receiver:
     def __init__(self, gui, sender, storage,
-                 mcrypto, queue, listening_address):
+                 mcrypto, certs, queue, listening_address):
         self.gui = gui
         self.sender = sender
         self.storage = storage
@@ -27,7 +28,7 @@ class Receiver:
         self.queue = queue
         self.ttl = 60*60*24*2  # two days
         
-        self.llreceiver = LowLevelReceiver(queue, listening_address)
+        self.llreceiver = LowLevelReceiver(certs, queue, listening_address)
         self.llreceiver_proc = multiprocessing.Process(
             target=self.llreceiver.run
         )
@@ -160,7 +161,8 @@ class Receiver:
 
 
 class LowLevelReceiver:
-    def __init__(self, queue, listening_address):
+    def __init__(self, certs, queue, listening_address):
+        self.certs = certs
         self.queue = queue
         self.listening_address = listening_address
 
@@ -171,7 +173,12 @@ class LowLevelReceiver:
         client_socket.close()
 
     def run(self):
+        context = ssl.SSLContext()
+        context.load_cert_chain(self.certs.cert_file, self.certs.key_file)
         server_socket = snakesockets.TCP(reuseaddr=True)
+        server_socket.sock = context.wrap_socket(
+            server_socket.sock, server_side=True
+        )
         server_socket.bind(self.listening_address)
         server_socket.listen()
 

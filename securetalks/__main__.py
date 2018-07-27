@@ -70,33 +70,27 @@ def main():
     storage_obj = storage.Storage(db_path, ttl_two_days)
     bootstrap(storage_obj, bootstrap_list)
     keys = crypto.KeysProvider(app_dir)
+    certs = crypto.CertificateProvider(app_dir)
     mcrypto = crypto.MessageCrypto(keys)
 
     sender_queue = multiprocessing.Queue()
     receiver_queue = multiprocessing.Queue()
 
     sender_obj = sender.Sender(
-        mcrypto, storage_obj, serv_addr[-1], sender_queue
+        mcrypto, certs, storage_obj, serv_addr[-1], sender_queue
     )
-    presentor_obj = presentor.Presentor(
-        sender_obj, keys, storage_obj
-    )
-    gui_obj = gui.WebeventsGUI(
-        presentor_obj, gui_port
-    )
+    presentor_obj = presentor.Presentor(sender_obj, keys, storage_obj)
+    gui_obj = gui.WebeventsGUI(presentor_obj, gui_port)
     receiver_obj = receiver.Receiver(
         gui_obj, sender_obj, storage_obj,
-        mcrypto, receiver_queue, serv_addr
+        mcrypto, certs, receiver_queue, serv_addr
     )
 
-    gui_obj.add_termination_callback(
-        lambda: receiver_obj.terminate()
-    )
-    gui_obj.add_termination_callback(
-        lambda: sender_obj.terminate()
-    )
+    gui_obj.add_termination_callback(lambda: receiver_obj.terminate())
+    gui_obj.add_termination_callback(lambda: sender_obj.terminate())
     sender_obj.request_offline_data()
     receiver_obj.run()
+    storage_obj.delete_expired_data()
 
 
 if __name__ == "__main__":
