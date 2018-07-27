@@ -155,6 +155,8 @@ class Receiver:
         )
         if not self.storage.nodes.check_node_exists(node):
             self.storage.nodes.add_node(node)
+        else:
+            node = self.storage.nodes.get_node_by_id(node_id)
         if not self.storage.messages.check_message_exists(message):
             self.storage.messages.add_message(message)
             self.gui.push_message(
