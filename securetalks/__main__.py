@@ -12,27 +12,44 @@ from . import crypto
 from . import sender
 from . import receiver
 
+
 def bootstrap(storage, bootstrap_list):
-    try:
-        with open(bootstrap_list) as file:
-            for line in file:
-                try:
-                    ip, port = line.strip().split(":")
-                    port = int(port)
-                except ValueError:
-                    continue
-                try:
-                    storage.ipaddresses.add_address(
-                        orm.IPAddress(ip, port)
-                    )
-                except orm.IPAddressAlreadyExistsError:
-                    pass
-    except OSError:
-        pass
+    bootstrap_list.touch(exist_ok=True)
+    with open(bootstrap_list) as file:
+        for line in file:
+            try:
+                ip, port = line.strip().split(":")
+                port = int(port)
+            except ValueError:
+                continue
+            try:
+                storage.ipaddresses.add_address(
+                    orm.IPAddress(ip, port)
+                )
+            except orm.IPAddressAlreadyExistsError:
+                pass
+
+
+def make_default_config(config_file):
+    with open(config_file, "w") as config:
+        parser = configparser.ConfigParser()
+        parser = configparser.ConfigParser()
+
+        parser.add_section("Server")
+        parser.set("Server", "address", "0.0.0.0")
+        parser.set("Server", "port", "8001")
+        parser.add_section("GUI")
+        parser.set("GUI", "port", "8002")
+        parser.write(config)
+
 
 def read_config(app_dir):
+    conf_file = app_dir / "config.txt"
+    if not conf_file.exists():
+        make_default_config(conf_file)
+
     parser = configparser.ConfigParser()
-    parser.read(str(app_dir / "config.txt"))
+    parser.read(str(conf_file))
     return (
         (
             parser.get("Server", "address", fallback="0.0.0.0"),
@@ -40,7 +57,7 @@ def read_config(app_dir):
         ),
         parser.getint("GUI", "port", fallback=8002)
     )
-            
+
 
 def main():
     ttl_two_days = 60 * 60 * 24 * 2
@@ -81,6 +98,6 @@ def main():
     sender_obj.request_offline_data()
     receiver_obj.run()
 
-    
+
 if __name__ == "__main__":
     main()
