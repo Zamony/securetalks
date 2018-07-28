@@ -1,4 +1,5 @@
 import pathlib
+import argparse
 import configparser
 import multiprocessing
 
@@ -11,6 +12,17 @@ from . import presentor
 from . import crypto
 from . import sender
 from . import receiver
+
+
+def obtain_app_dir():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--dirname", default=".securetalks",
+        help="Directory for application data"
+    )
+    app_dir = pathlib.Path.home() / parser.parse_args().dirname
+    app_dir.mkdir(exist_ok=True)
+    return app_dir
 
 
 def bootstrap(storage, bootstrap_list):
@@ -60,9 +72,8 @@ def read_config(app_dir):
 
 
 def main():
+    app_dir = obtain_app_dir()
     ttl_two_days = 60 * 60 * 24 * 2
-    app_dir = pathlib.Path.home() / ".securetalks"
-    app_dir.mkdir(exist_ok=True)
     db_path = app_dir / "db.sqlite3"
     bootstrap_list = app_dir / "bootstrap.list"
     serv_addr, gui_port = read_config(app_dir)
