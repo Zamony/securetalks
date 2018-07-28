@@ -94,15 +94,17 @@ class Receiver:
         self.sender.send_to(json.dumps(response), address)
 
     def _handle_response_offline_message(self, address, message):
+        logger.info("Handling response to offline data request")
         try:
             self.sender.offline_requested.remove(address)
             message["ciphergrams"]
         except (ValueError, KeyError):
+            logger.info("Error in handling offline response message")
             return  # flooding
         else:
             for cph in message["ciphergrams"]:
                 self._handle_ciphergram_message(
-                    address, cph, offline=True
+                    address, json.loads(cph["content"]), offline=True
                 )
 
     def _handle_ciphergram_message(self, address, message, offline=False):
@@ -112,7 +114,7 @@ class Receiver:
         except MessageParsingError:
             logger.info("Got ciphergram message, parsing error")
             return
-
+        
         try:
             node_id, msg_text = self.mcrypto.get_plaintext(ciphergram)
         except crypto.MessageDecryptionError:

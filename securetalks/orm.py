@@ -31,9 +31,11 @@ class Message:
     
 @dataclass(order=True)
 class IPAddress:
-    address: str = field(compare=False)
+    address: str
     port: int = field(compare=False)
-    last_activity: int = field(default_factory=lambda: int(time.time()))
+    last_activity: int = field(
+        default_factory=lambda: int(time.time()), compare=False
+    )
 
     def update_activity(self):
         self.last_activity = int(time.time())
