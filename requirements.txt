@@ -1,0 +1,2 @@
+cryptography==2.3
+webevents==0.1.4

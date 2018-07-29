@@ -14,6 +14,7 @@ Installation is possible by cloning the repository:
 
 ```bash
 git clone git@github.com:Zamony/securetalks.git securetalks-sources
+pip install -r requirements.txt
 ```
 
 Then you can launch it from `securetalks-sources` as:  (Python 3.7 or above)
