@@ -32,7 +32,7 @@ class Message:
 @dataclass(order=True)
 class IPAddress:
     address: str
-    port: int = field(compare=False)
+    port: int
     last_activity: int = field(
         default_factory=lambda: int(time.time()), compare=False
     )

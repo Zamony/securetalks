@@ -16,7 +16,7 @@ class Sender:
         self.storage = storage
         self.my_port = my_port
         self.offline_requested = None
-        self.llsender = LowLevelSender(self.queue, mcrypto, certs)
+        self.llsender = LowLevelSender(self.queue, mcrypto, certs, my_port)
         self.llsender_proc = multiprocessing.Process(
             target=self.llsender.run
         )
@@ -38,6 +38,21 @@ class Sender:
                 )
             )
         )
+
+    def respond_offline_data(self, address):
+        response = dict(
+            type="response_offline_data",
+            server_port=self.my_port,
+            ciphergrams=[]
+        )
+        for ciphergram in self.storage.ciphergrams.list_all():
+            response["ciphergrams"].append(
+                dict(
+                    content=ciphergram.content,
+                    timestamp=ciphergram.timestamp
+                )
+            )
+        self.send_to(json.dumps(response), address)
 
     def send_to(self, message, ip_address):
         self.queue.put(
@@ -63,10 +78,11 @@ class Sender:
 
 
 class LowLevelSender:
-    def __init__(self, queue, mcrypto, certs):
+    def __init__(self, queue, mcrypto, certs, port):
         self.queue = queue
         self.mcrypto = mcrypto
         self.certs = certs
+        self.my_port = port
 
     def _send_message(self, ip_addresses, message):
         context = ssl.SSLContext()
@@ -97,6 +113,7 @@ class LowLevelSender:
                         json.dumps(
                             dict(
                                 type="ciphergram",
+                                server_port=self.my_port,
                                 **dataclasses.asdict(ciphergram)
                             )
                         )

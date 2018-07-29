@@ -42,6 +42,7 @@ class Receiver:
             try:
                 message_json = message_bytes.decode("utf-8")
                 message = json.loads(message_json)
+                address.port = int(message["server_port"])
                 message["type"]
             except Exception:
                 pass  # message parsing error
@@ -68,30 +69,13 @@ class Receiver:
         
 
     def _handle_request_offline_message(self, address, message):
-        try:
-            address.port = int(message["server_port"])
-        except Exception:
-            return
-
         if not self.storage.ipaddresses.check_address_exists(address):
             self.storage.ipaddresses.add_address(address)
 
         logger.info(
             f"Got request for offline data from {address} with {message}"
         )
-        
-        response = dict(
-            type="response_offline_data",
-            ciphergrams=[]
-        )
-        for ciphergram in self.storage.ciphergrams.list_all():
-            response["ciphergrams"].append(
-                dict(
-                    content=ciphergram.content,
-                    timestamp=ciphergram.timestamp
-                )
-            )
-        self.sender.send_to(json.dumps(response), address)
+        self.sender.respond_offline_data(address)
 
     def _handle_response_offline_message(self, address, message):
         logger.info("Handling response to offline data request")
@@ -120,6 +104,9 @@ class Receiver:
         except crypto.MessageDecryptionError:
             logger.info("Got ciphergram message, decryption error")
             self._store_as_ciphergram(message, ciphergram.timestamp)
+            if not offline:
+                logger.info(f"Broadcast except {address}")
+                self.sender.broadcast_from(message, address)
         except crypto.MessageCryptoError:
             logger.info("Got ciphergram message, crypto error")
             return
@@ -137,6 +124,7 @@ class Receiver:
         try:
             crypto_message = json.loads(flat_ciphergram)
             del crypto_message["type"]
+            del crypto_message["server_port"]
             crypto_message = crypto.EncryptedMessage(**crypto_message)
         except Exception as exc:
             raise MessageParsingError from exc
@@ -161,6 +149,8 @@ class Receiver:
             node = self.storage.nodes.get_node_by_id(node_id)
         if not self.storage.messages.check_message_exists(message):
             self.storage.messages.add_message(message)
+            self.storage.nodes.increment_node_unread(node)
+
             self.gui.push_message(
                 {**dataclasses.asdict(node), **dataclasses.asdict(message)}
             )
