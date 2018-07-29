@@ -12,6 +12,7 @@ from securetalks import crypto
 from securetalks import receiver
 
 
+@patch("securetalks.receiver.LowLevelReceiver")
 class TestReceiver(unittest.TestCase):
     def setUp(self):
         self.sender_keys = crypto.KeysProvider(
@@ -20,23 +21,21 @@ class TestReceiver(unittest.TestCase):
         self.recver_keys = crypto.KeysProvider(
             pathlib.Path.cwd() / "tests" / "receiver_keys"
         )
-        self.sender_mcrypto = crypto.MessageCrypto(
-            self.sender_keys, 60*60
-        )
-        self.recver_mcrypto = crypto.MessageCrypto(
-            self.recver_keys, 60*60
-        )
+        self.sender_mcrypto = crypto.MessageCrypto(self.sender_keys)
+        self.recver_mcrypto = crypto.MessageCrypto(self.recver_keys)
         ciphergram = self.sender_mcrypto.get_ciphergram(
             self.recver_keys.pub_key_str, "Message from sender"
         )
         self.message = dict(
-            type="ciphergram",**dataclasses.asdict(ciphergram)
+            type="ciphergram",
+            server_port=8001,
+            **dataclasses.asdict(ciphergram)
         )
 
 
-    def test_handle_ciphergram_store_message(self):
+    def test_handle_ciphergram_store_message(self, llr_mock):
         self.receiver = receiver.Receiver(
-            Mock(), Mock(), Mock(), self.recver_mcrypto, Mock()
+            Mock(), Mock(), Mock(), self.recver_mcrypto, Mock(), Mock(), Mock()
         )
         with patch.object(self.receiver, "_store_as_ciphergram") as mock_sc:
             with patch.object(self.receiver, "_store_as_message") as mock_sm:
@@ -44,9 +43,9 @@ class TestReceiver(unittest.TestCase):
                 mock_sc.assert_not_called()
                 mock_sm.assert_called()
 
-    def test_handle_ciphergram_store_ciphergram(self):
+    def test_handle_ciphergram_store_ciphergram(self, llr_mock):
         self.receiver = receiver.Receiver(
-            Mock(), Mock(), Mock(), self.sender_mcrypto, Mock()
+            Mock(), Mock(), Mock(), self.sender_mcrypto, Mock(), Mock(), Mock()
         )
         with patch.object(self.receiver, "_store_as_ciphergram") as mock_sc:
             with patch.object(self.receiver, "_store_as_message") as mock_sm:
@@ -54,11 +53,11 @@ class TestReceiver(unittest.TestCase):
                 mock_sc.assert_called()
                 mock_sm.assert_not_called()
 
-    def test_handle_ciphergram_dont_store_crypto_error(self):
+    def test_handle_ciphergram_dont_store_crypto_error(self, llr_mock):
         message = self.message.copy()
         message["proof"] = 1
         self.receiver = receiver.Receiver(
-            Mock(), Mock(), Mock(), self.recver_mcrypto, Mock()
+            Mock(), Mock(), Mock(), self.recver_mcrypto, Mock(), Mock(), Mock()
         )
         with patch.object(self.receiver, "_store_as_ciphergram") as mock_sc:
             with patch.object(self.receiver, "_store_as_message") as mock_sm:
@@ -66,10 +65,10 @@ class TestReceiver(unittest.TestCase):
                 mock_sc.assert_not_called()
                 mock_sm.assert_not_called()
 
-    def test_handle_ciphergram_dont_store_expired(self):
+    def test_handle_ciphergram_dont_store_expired(self, llr_mock):
         curr_time = time.time()
         self.receiver = receiver.Receiver(
-            Mock(), Mock(), Mock(), self.recver_mcrypto, Mock()
+            Mock(), Mock(), Mock(), self.recver_mcrypto, Mock(), Mock(), Mock()
         )
         self.receiver.ttl = 0
         with patch.object(self.receiver, "_store_as_ciphergram") as mock_sc:
