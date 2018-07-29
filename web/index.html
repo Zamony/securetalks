@@ -188,7 +188,6 @@
       $(`#conv-${message.node_id} .messages`).append(render_msg(message));
     }
     function render_msg(message) {
-      console.log(message);
       var class_suff = message.to_me ? "from" : "me";
       var talking_to = message.alias == "" ? message.node_id : message.alias;
       var author = message.to_me ? talking_to : "Me";
@@ -209,7 +208,7 @@
       var sidebar_el = $(`#${message.node_id}`);
       var dialog = {}
       dialog.node_id = message.node_id;
-      dialog.alias = sidebar_el.find("p").text();
+      dialog.alias = message.alias;
       dialog.messages = new Array(message);
 
       if (sidebar_el.length == 0) {
@@ -222,18 +221,22 @@
         var new_count = count == "" ? 1 : parseInt(count) + 1;
         sidebar_el.remove();
         add_dialog_to_sidebar_html(dialog);
-        if (was_active)
+        if (was_active){
           $(`#${message.node_id}`).addClass("active");
-        else
+          webevents.fireEvent("make_dialog_read", message.node_id);
+        } else {
           $(`#${message.node_id}`).find(".badge").html(new_count);
+        }
       }
       add_message_to_dialog_html(message);
     }
     function initial_dialog_set(dialogs) {
+      $("#dialogs div").html("");
       for (var i = 0; i < dialogs.length; i += 1) {
         var dialog = dialogs[i];
         add_dialog_to_sidebar_html(dialog);
         add_conv_to_html(dialog.node_id);
+        $("#conv-"+dialog.node_id + " .messages").html("");
         for (var j = 0; j < dialog.messages.length; j += 1) {
           var message = dialogs[i].messages[j];
           message.node_id = dialog.node_id;
@@ -254,6 +257,7 @@
           "text": msg_text,
           "timestamp": Math.round((new Date()).getTime() / 1000),
           "node_id": uid,
+          "alias": $("a.active").find("p").text()
         };
         push_message(message);
         scroll_messages($(".inputbox").siblings(".messages"));
